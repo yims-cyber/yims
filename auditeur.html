@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="fr" class="light">
+<html lang="fr" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orateur Pro - Auditeur Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -21,13 +21,12 @@
         }
     </script>
     <style>
-        * { font-size: 13px !important; transition: background-color 0.3s, color 0.3s; }
+        /* Base Reset & Global Font Size */
+        * { font-size: 13px !important; transition: all 0.2s ease; }
         html, body, select, input, button, p, div, span, h1 { font-family: 'Inter', sans-serif; }
 
-        body {
-            margin: 0; padding: 0; overflow: hidden;
-            @apply bg-slate-50 dark:bg-obsidian;
-        }
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #f8fafc; }
+        .dark body { background-color: #050506; }
 
         .app-container {
             max-width: 450px;
@@ -35,148 +34,215 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            @apply bg-white dark:bg-obsidian shadow-2xl;
+            background-color: white;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
         }
+        .dark .app-container { background-color: #0a0a0b; }
 
+        /* Pro Mobile Header - Glassmorphism */
         .header-app {
-            padding: 12px 20px;
-            @apply border-b border-slate-100 dark:border-white/5;
+            padding: 14px 20px;
             z-index: 30;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .dark .header-app {
+            background: rgba(10, 10, 11, 0.85);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        /* Fixed-size Container with auto-scroll and invisible scrollbar */
+        /* Scroll Area */
         .scroll-container {
             flex: 1;
             overflow-y: auto;
-            padding: 20px;
+            padding: 16px;
             display: flex;
             flex-direction: column;
             scroll-behavior: smooth;
         }
+        .scroll-container::-webkit-scrollbar { display: none; }
+        .scroll-container { -ms-overflow-style: none; scrollbar-width: none; }
 
-        .scroll-container::-webkit-scrollbar {
-            display: none;
+        /* Phrase Card: Styled and Distinct */
+        .phrase-card {
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            border-radius: 14px;
+            background: #ffffff;
+            border: 1px solid #edf2f7;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
         }
-        .scroll-container {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        .dark .phrase-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
         }
 
-        .translation-block {
-            font-size: 20px !important;
-            font-weight: 700;
-            line-height: 1.25;
-            margin-bottom: 8px; /* Reduced spacing */
-            @apply text-slate-900 dark:text-white;
+        .translation-text {
+            font-size: 12px !important; /* Smaller text as requested */
+            font-weight: 500;
+            line-height: 1.6;
+            color: #334155;
         }
+        .dark .translation-text { color: #f1f5f9; }
 
-        .original-mini {
-            font-size: 10px !important;
+        .original-text {
+            font-size: 9px !important;
             font-weight: 600;
-            @apply text-slate-400 dark:text-white/30 uppercase tracking-tighter mb-4;
+            color: #94a3b8;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
             display: none;
         }
-        .original-mini.show { display: block; }
+        .original-text.show { display: block; }
 
-        .footer-controls {
-            padding: 20px;
-            @apply border-t border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-white/5;
-            border-radius: 24px 24px 0 0;
+        /* Footer Controls */
+        .footer-app {
+            padding: 18px 20px;
+            background: #ffffff;
+            border-top: 1px solid #f1f5f9;
+            box-shadow: 0 -10px 20px rgba(0,0,0,0.03);
+        }
+        .dark .footer-app {
+            background: #0f0f11;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        .live-indicator {
-            @apply flex items-center gap-2 bg-red-50 dark:bg-red-950/30 px-2 py-1 rounded text-red-600 dark:text-red-400 font-black text-[9px] uppercase;
+        .live-badge {
+            background: #fee2e2;
+            color: #ef4444;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 9px !important;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.1);
         }
+        .dark .live-badge { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 
-        .pulse-dot {
-            width: 5px; height: 5px; @apply bg-red-600 dark:bg-red-400 rounded-full;
-            animation: pulse 1s infinite;
+        .pulse-icon {
+            width: 4px; height: 4px; background: currentColor; border-radius: 50%;
+            animation: pulse-kf 1.2s infinite;
         }
-
-        @keyframes pulse {
+        @keyframes pulse-kf {
             0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.4); opacity: 0.5; }
+            50% { transform: scale(1.8); opacity: 0.3; }
             100% { transform: scale(1); opacity: 1; }
         }
 
+        .circle-btn {
+            width: 36px; height: 36px; border-radius: 50%;
+            display: flex; items-center: center; justify-content: center;
+            transition: all 0.2s;
+            background: #f1f5f9;
+            color: #64748b;
+        }
+        .dark .circle-btn { background: rgba(255, 255, 255, 0.05); color: #94a3b8; }
+        .circle-btn.active { background: #6366f1; color: white; }
+
         select, input[type="range"] {
-            @apply bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 outline-none text-slate-900 dark:text-white;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 6px 10px;
+            color: #1e293b;
+            outline: none;
+        }
+        .dark select, .dark input[type="range"] {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #f8fafc;
         }
 
-        .theme-btn {
-            @apply w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 dark:text-white/40 hover:bg-slate-100 dark:hover:bg-white/10 transition-all;
+        .test-audio-btn {
+            background: #6366f1;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 10px !important;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
+        .test-audio-btn:hover { background: #4f46e5; }
     </style>
 </head>
-<body class="dark"> <!-- Defaulting to dark as requested "noir ou black" -->
+<body class="dark">
     <div class="app-container">
         <!-- Header -->
         <header class="header-app flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-lg">
-                    <i class="fas fa-tower-broadcast text-xs"></i>
-                </div>
-                <div>
-                    <h1 class="font-bold text-slate-900 dark:text-white text-[13px]">Orateur Pro</h1>
-                    <div class="live-indicator">
-                        <div class="pulse-dot"></div> EN DIRECT
-                    </div>
+            <button id="themeToggle" class="circle-btn" style="display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-moon dark:hidden text-xs"></i>
+                <i class="fas fa-sun hidden dark:block text-xs"></i>
+            </button>
+
+            <div class="flex flex-col items-center">
+                <span class="font-bold text-[11px] text-slate-800 dark:text-white uppercase tracking-[0.2em] mb-1">Orateur Pro</span>
+                <div class="live-badge">
+                    <div class="pulse-icon"></div> DIRECT
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
-                <button id="themeToggle" class="theme-btn" title="Changer le thème">
-                    <i class="fas fa-moon dark:hidden"></i>
-                    <i class="fas fa-sun hidden dark:block"></i>
-                </button>
-                <button id="speakerBtn" class="theme-btn" title="Activer la lecture vocale">
-                    <i class="fas fa-volume-mute text-red-500" id="speakerIcon"></i>
-                </button>
-            </div>
+            <button id="speakerBtn" class="circle-btn" style="display:flex; align-items:center; justify-content:center;">
+                <i class="fas fa-volume-mute text-xs" id="speakerIcon"></i>
+            </button>
         </header>
 
-        <!-- Dynamic Stream Area -->
+        <!-- Main Stream Area -->
         <main class="scroll-container" id="scrollBox">
-            <div id="empty-state" class="my-auto text-center space-y-4">
-                <i class="fas fa-microphone-lines text-4xl text-slate-200 dark:text-white/5"></i>
-                <p class="text-slate-400 dark:text-white/20 font-medium">En attente de l'orateur...</p>
+            <div id="empty-state" class="my-auto text-center space-y-3 opacity-30">
+                <i class="fas fa-wave-square text-3xl text-indigo-500"></i>
+                <p class="text-slate-400 dark:text-white font-medium text-[11px]">En attente de transmission...</p>
             </div>
 
-            <div id="stream-content" class="hidden w-full">
-                <!-- Phrases will be appended here -->
-            </div>
-            <div id="interim-block" class="translation-block opacity-40 italic hidden"></div>
-            <div id="anchor"></div> <!-- Invisible anchor for auto-scroll -->
+            <div id="stream-content" class="hidden w-full"></div>
+            <div id="interim-block" class="phrase-card opacity-50 hidden italic border-dashed text-[11px] font-medium"></div>
         </main>
 
-        <!-- Controls -->
-        <footer class="footer-controls space-y-4">
+        <!-- Navigation / Settings -->
+        <footer class="footer-app space-y-4">
             <div class="grid grid-cols-2 gap-3">
-                <div class="flex flex-col gap-1">
-                    <label class="text-[9px] font-bold text-slate-400 dark:text-white/30 uppercase">Langue</label>
-                    <select id="langSelect">
-                        <option value="none">Français (Origine)</option>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[8px] font-black text-slate-400 dark:text-white/20 uppercase tracking-widest">Ma Langue</label>
+                    <select id="langSelect" class="text-[11px]">
+                        <option value="none">Français (Original)</option>
                         <option value="en">English (US)</option>
                         <option value="es">Español</option>
                         <option value="de">Deutsch</option>
                         <option value="it">Italiano</option>
                     </select>
                 </div>
-                <div class="flex flex-col gap-1">
-                    <label class="text-[9px] font-bold text-slate-400 dark:text-white/30 uppercase">Vitesse Audio</label>
-                    <div class="flex items-center gap-2">
-                        <input type="range" id="rateRange" min="0.5" max="1.5" step="0.1" value="1" class="flex-1">
-                        <span id="rateLabel" class="text-[10px] font-bold text-indigo-500 w-5">1x</span>
-                    </div>
+                <div class="flex flex-col gap-1.5">
+                    <label class="text-[8px] font-black text-slate-400 dark:text-white/20 uppercase tracking-widest">Vérification</label>
+                    <button id="testAudioBtn" class="test-audio-btn">
+                        <i class="fas fa-play-circle"></i> TEST AUDIO
+                    </button>
                 </div>
             </div>
 
-            <div class="flex items-center justify-between p-3 bg-white dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5">
-                <span class="font-bold text-slate-600 dark:text-white/60">Afficher l'original</span>
+            <div class="flex items-center justify-between p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-slate-100 dark:border-white/5">
+                <div class="flex flex-col">
+                    <span class="font-bold text-slate-700 dark:text-white/80 text-[11px]">Mode Miniature</span>
+                    <span class="text-[9px] text-slate-400 dark:text-white/20">Afficher la source orateur</span>
+                </div>
                 <label class="relative inline-flex items-center cursor-pointer">
                     <input type="checkbox" id="toggleOriginal" class="sr-only peer">
                     <div class="w-9 h-5 bg-slate-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
                 </label>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+                <div class="flex justify-between items-center">
+                    <label class="text-[8px] font-black text-slate-400 dark:text-white/20 uppercase tracking-widest">Vitesse de lecture</label>
+                    <span id="rateLabel" class="text-[9px] font-bold text-indigo-500">1.0x</span>
+                </div>
+                <input type="range" id="rateRange" min="0.5" max="1.5" step="0.1" value="1" class="w-full">
             </div>
         </footer>
     </div>
@@ -193,22 +259,18 @@
             toggle: document.getElementById('toggleOriginal'),
             speaker: document.getElementById('speakerBtn'),
             speakerIcon: document.getElementById('speakerIcon'),
-            themeToggle: document.getElementById('themeToggle')
+            themeToggle: document.getElementById('themeToggle'),
+            testAudio: document.getElementById('testAudioBtn')
         };
 
         let lastTS = 0;
         let ttsActive = false;
         const synth = window.speechSynthesis;
 
-        // Theme Toggle
-        UI.themeToggle.onclick = () => {
-            document.body.classList.toggle('dark');
-        };
+        UI.themeToggle.onclick = () => document.documentElement.classList.toggle('dark');
 
-        // TTS Professional Quality Setup
         function getBestVoice(lang) {
             const voices = synth.getVoices();
-            // Try to find "premium" or higher quality voices
             return voices.find(v => v.lang.startsWith(lang) && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural')))
                    || voices.find(v => v.lang.startsWith(lang));
         }
@@ -221,19 +283,25 @@
             utterance.lang = targetLang;
             utterance.voice = getBestVoice(targetLang);
             utterance.rate = parseFloat(UI.rate.value);
-            utterance.pitch = 1.0;
             synth.speak(utterance);
         }
 
         UI.speaker.onclick = () => {
             ttsActive = !ttsActive;
-            UI.speakerIcon.className = ttsActive ? "fas fa-volume-up text-indigo-500" : "fas fa-volume-mute text-red-500";
+            UI.speaker.classList.toggle('active', ttsActive);
+            UI.speakerIcon.className = ttsActive ? "fas fa-volume-up text-xs" : "fas fa-volume-mute text-xs";
             if (ttsActive) {
-                // Force unlock mobile audio context
-                const dummy = new SpeechSynthesisUtterance("Vocal activé");
+                const dummy = new SpeechSynthesisUtterance("Audio activé");
                 dummy.volume = 0;
                 synth.speak(dummy);
             }
+        };
+
+        UI.testAudio.onclick = () => {
+            const msg = new SpeechSynthesisUtterance("Test de lecture vocale Orateur Pro.");
+            msg.lang = 'fr-FR';
+            msg.rate = parseFloat(UI.rate.value);
+            synth.speak(msg);
         };
 
         async function fastTranslate(text) {
@@ -263,19 +331,16 @@
                         UI.interim.classList.add('hidden');
                         const translated = await fastTranslate(data.text);
 
-                        // Append new block
-                        const block = document.createElement('div');
+                        const card = document.createElement('div');
+                        card.className = 'phrase-card';
                         const showOrig = UI.toggle.checked ? 'show' : '';
-                        block.innerHTML = `
-                            <div class="original-mini ${showOrig}">${data.text}</div>
-                            <div class="translation-block">${translated}</div>
+                        card.innerHTML = `
+                            <div class="original-text ${showOrig}">${data.text}</div>
+                            <div class="translation-text">${translated}</div>
                         `;
-                        UI.content.appendChild(block);
-
+                        UI.content.appendChild(card);
                         speak(translated);
                     }
-
-                    // Auto-scroll to bottom
                     UI.scroll.scrollTop = UI.scroll.scrollHeight;
                 }
             } catch (e) {}
@@ -283,9 +348,7 @@
 
         setInterval(refresh, 300);
         UI.rate.oninput = () => UI.rateLabel.innerText = UI.rate.value + 'x';
-
-        // Handle voice loading
-        synth.onvoiceschanged = () => { console.log("Voices loaded"); };
+        synth.onvoiceschanged = () => console.log("Voices sync");
     </script>
 </body>
 </html>
