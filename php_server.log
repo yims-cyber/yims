@@ -53,3 +53,12 @@
 [Sun Jun  7 07:48:32 2026] [::1]:46778 Accepted
 [Sun Jun  7 07:48:32 2026] [::1]:46778 [200]: GET /sw.js
 [Sun Jun  7 07:48:32 2026] [::1]:46778 Closing
+[Sun Jun  7 08:25:40 2026] [::1]:41970 Accepted
+[Sun Jun  7 08:25:40 2026] [::1]:41970 [200]: GET /auditeur.html
+[Sun Jun  7 08:25:40 2026] [::1]:41970 Closing
+[Sun Jun  7 08:25:40 2026] [::1]:41972 Accepted
+[Sun Jun  7 08:25:40 2026] [::1]:41972 [200]: GET /post.php?action=get_sessions&t=1780820740943
+[Sun Jun  7 08:25:40 2026] [::1]:41972 Closing
+[Sun Jun  7 08:25:40 2026] [::1]:41974 Accepted
+[Sun Jun  7 08:25:40 2026] [::1]:41974 [200]: GET /sw.js
+[Sun Jun  7 08:25:40 2026] [::1]:41974 Closing

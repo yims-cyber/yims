@@ -32,6 +32,7 @@ function atomic_read($file) {
 
 $action = $_POST['action'] ?? $_GET['action'] ?? 'get_sessions';
 $sessionId = $_POST['session_id'] ?? $_GET['session_id'] ?? '';
+$sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '', $sessionId); // Sanitize
 
 if ($action === 'start_session' && !empty($sessionId)) {
     $sessions = atomic_read($sessionFile) ?? [];

@@ -5,6 +5,7 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 $action = $_GET['action'] ?? '';
 $role = $_GET['role'] ?? '';
 $sessionId = $_GET['session_id'] ?? $_POST['session_id'] ?? 'default';
+$sessionId = preg_replace('/[^a-zA-Z0-9_-]/', '', $sessionId); // Sanitize
 
 // Create a session-specific signaling file
 $file = "signaling_{$sessionId}.json";
