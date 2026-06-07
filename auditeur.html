@@ -339,15 +339,20 @@
             } catch (e) { return text; }
         }
 
+        let forceLiveLatch = false;
         async function poll() {
             try {
-                const res = await fetch('post.php?t=' + Date.now());
+                const res = await fetch('post.php?t=' + Date.now(), { cache: 'no-store' });
                 const data = await res.json();
 
-                // Use server time to calculate activity to bypass local clock drift
-                const timeDiff = data.server_time - data.timestamp;
-                const isRecentlyActive = timeDiff < 10000; // Signal within last 10s
-                const liveActive = data.is_live && isRecentlyActive;
+                // Advanced Live Status: bypass drift and use absolute server flags
+                // forceLiveLatch keeps the UI open even if a packet is delayed
+                const now = data.server_time;
+                const isSignaling = (now - data.timestamp) < 15000; // 15s window
+                const liveActive = (data.is_live && isSignaling) || (data.is_live && forceLiveLatch);
+
+                if (data.is_live && isSignaling) forceLiveLatch = true;
+                if (!data.is_live) forceLiveLatch = false;
 
                 UI.offline.classList.toggle('hidden', liveActive);
                 UI.speaking.classList.toggle('hidden', !data.is_speaking || !liveActive);

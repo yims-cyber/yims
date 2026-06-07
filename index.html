@@ -253,10 +253,10 @@
             }).catch(() => {});
         }
 
-        // Heartbeat for live status
+        // Heartbeat for live status - increased frequency to 2s
         setInterval(() => {
             if (state.isListening) broadcast(null);
-        }, 3000);
+        }, 2000);
 
         async function setupAudio() {
             try {
@@ -456,6 +456,9 @@
 
                 if (recognition) recognition.start();
                 elements.transcript.innerHTML = '<span class="text-neon-cyan/40 italic">Écoute active...</span>';
+
+                // Immediate notification to all auditors that live is active
+                broadcast(null);
             } else {
                 state.isListening = false;
                 clearInterval(state.timerInterval);
