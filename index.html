@@ -279,8 +279,8 @@
         async function initWebRTC() {
             if (state.webrtc.pc) state.webrtc.pc.close();
 
-            // Clear previous signaling
-            await fetch('signaling.php?action=clear', { method: 'POST' });
+            // Clear previous signaling for this specific session
+            await fetch(`signaling.php?action=clear&session_id=${state.sessionId}`, { method: 'POST' });
 
             state.webrtc.pc = new RTCPeerConnection({
                 iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
@@ -292,7 +292,7 @@
 
             state.webrtc.pc.onicecandidate = ({candidate}) => {
                 if (candidate) {
-                    fetch('signaling.php?action=push&role=orator', {
+                    fetch(`signaling.php?action=push&role=orator&session_id=${state.sessionId}`, {
                         method: 'POST',
                         body: JSON.stringify({ candidate })
                     });
@@ -302,29 +302,34 @@
             const offer = await state.webrtc.pc.createOffer();
             await state.webrtc.pc.setLocalDescription(offer);
 
-            await fetch('signaling.php?action=push&role=orator', {
+            await fetch(`signaling.php?action=push&role=orator&session_id=${state.sessionId}`, {
                 method: 'POST',
                 body: JSON.stringify({ offer })
             });
 
-            // Poll for answer
+            // Poll for answers from multiple auditors
             if (state.webrtc.pollInterval) clearInterval(state.webrtc.pollInterval);
             state.webrtc.pollInterval = setInterval(async () => {
                 try {
-                    const res = await fetch('signaling.php');
+                    const res = await fetch(`signaling.php?session_id=${state.sessionId}`);
                     const data = await res.json();
 
-                    if (data.answer && state.webrtc.pc.signalingState === 'have-local-offer') {
-                        await state.webrtc.pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    // Note: Browser P2P limited to few connections.
+                    // Here we handle the most recent handshake for simplicity in this script.
+                    const lastAuditorId = Object.keys(data.answers).pop();
+                    if (lastAuditorId && state.webrtc.pc.signalingState === 'have-local-offer') {
+                        await state.webrtc.pc.setRemoteDescription(new RTCSessionDescription(data.answers[lastAuditorId]));
                     }
 
                     if (data.auditor_candidates && state.webrtc.pc.remoteDescription) {
-                        data.auditor_candidates.forEach(candidate => {
-                            const candStr = JSON.stringify(candidate);
-                            if (candidate && !state.webrtc.candidatesAdded.has(candStr)) {
-                                state.webrtc.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
-                                state.webrtc.candidatesAdded.add(candStr);
-                            }
+                        Object.values(data.auditor_candidates).forEach(candList => {
+                            candList.forEach(candidate => {
+                                const candStr = JSON.stringify(candidate);
+                                if (candidate && !state.webrtc.candidatesAdded.has(candStr)) {
+                                    state.webrtc.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
+                                    state.webrtc.candidatesAdded.add(candStr);
+                                }
+                            });
                         });
                     }
                 } catch (e) {}
@@ -420,14 +425,14 @@
                         const item = { text: phrase, time: new Date().toLocaleTimeString('fr-FR') };
                         state.history.unshift(item);
                         localStorage.setItem('orateur_pro_history', JSON.stringify(state.history.slice(0,50)));
-                        elements.transcript.innerHTML = `<span class="text-white">${phrase}</span>`;
+                        elements.transcript.textContent = phrase;
                         renderHistory();
                         broadcast({ type: 'final', text: phrase });
                     }
                 }
 
                 if (interim) {
-                    elements.transcript.innerHTML = `<span class="text-neon-cyan/60 animate-pulse">${interim}</span>`;
+                    elements.transcript.textContent = interim;
                     broadcast({ type: 'interim', text: interim });
                 }
             };
