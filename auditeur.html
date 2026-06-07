@@ -188,8 +188,6 @@
 
     <script>
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
-        history.pushState(null, null, location.href);
-        window.onpopstate = () => history.go(1);
 
         const UI = {
             discovery: document.getElementById('discovery-screen'),
@@ -229,13 +227,19 @@
             };
         });
 
+        let lastSessionsJSON = "";
         async function fetchSessions() {
             if (currentSessionId) return;
             try {
                 const res = await fetch('post.php?action=get_sessions&t=' + Date.now());
                 const data = await res.json();
+                const sessionsJSON = JSON.stringify(data.sessions);
+                if (sessionsJSON === lastSessionsJSON) return;
+                lastSessionsJSON = sessionsJSON;
+
                 if (data.sessions?.length > 0) {
                     UI.sessions.innerHTML = '';
+                    const fragment = document.createDocumentFragment();
                     data.sessions.forEach(s => {
                         const btn = document.createElement('button');
                         btn.className = 'live-btn';
@@ -261,8 +265,9 @@
                         infoDiv.appendChild(subDiv);
                         btn.appendChild(iconDiv);
                         btn.appendChild(infoDiv);
-                        UI.sessions.appendChild(btn);
+                        fragment.appendChild(btn);
                     });
+                    UI.sessions.appendChild(fragment);
                 } else {
                     UI.sessions.innerHTML = '<div class="py-10 text-slate-400 italic">Aucun live disponible...</div>';
                 }
@@ -271,6 +276,12 @@
         setInterval(fetchSessions, 3000);
 
         window.joinSession = (id) => {
+            // Fix history warning: only push state after user interaction
+            if (!currentSessionId) {
+                history.pushState(null, null, location.href);
+                window.onpopstate = () => history.go(1);
+            }
+
             currentSessionId = id;
             retryCount = 0;
             UI.discovery.style.display = 'none';
