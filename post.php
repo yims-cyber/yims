@@ -77,7 +77,7 @@ if ($action === 'start_session' && !empty($sessionId)) {
     }
 
     // Cleanup
-    $filesToDelete = ["live_{$sessionId}.json", "signaling_{$sessionId}.json", "broadcast.json"];
+    $filesToDelete = ["live_{$sessionId}.json", "signaling_{$sessionId}.json"];
     foreach($filesToDelete as $f) {
         if (file_exists($f)) unlink($f);
     }
@@ -94,7 +94,6 @@ if ($action === 'start_session' && !empty($sessionId)) {
     if (file_exists($sessionFile)) unlink($sessionFile);
     if (file_exists($logsFile)) unlink($logsFile);
     if (file_exists('voix.log')) unlink('voix.log');
-    if (file_exists('broadcast.json')) unlink('broadcast.json');
     if (file_exists('webrtc_signaling.json')) unlink('webrtc_signaling.json');
 
     // Delete all live and signaling files
