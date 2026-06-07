@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Orateur Pro - Console de Transcription</title>
+    <title>Orateur Pro - Console de Transcription Ultra</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
@@ -12,23 +12,11 @@
             theme: {
                 extend: {
                     colors: {
-                        obsidian: {
-                            900: '#050506',
-                            800: '#0d0d0f',
-                            700: '#1a1a1e',
-                        },
-                        neon: {
-                            cyan: '#00f2ff',
-                            purple: '#bc13fe',
-                        }
+                        obsidian: { 900: '#050506', 800: '#0d0d0f', 700: '#1a1a1e' },
+                        neon: { cyan: '#00f2ff', purple: '#bc13fe' }
                     },
-                    fontFamily: {
-                        'display': ['Orbitron', 'sans-serif'],
-                        'sans': ['Inter', 'sans-serif'],
-                    },
-                    fontSize: {
-                        'base': '13px',
-                    }
+                    fontFamily: { 'display': ['Orbitron', 'sans-serif'], 'sans': ['Inter', 'sans-serif'] },
+                    fontSize: { 'base': '13px' }
                 }
             }
         }
@@ -36,166 +24,154 @@
     <style>
         * { font-size: 13px !important; }
         h1, .font-display { font-size: 1.2rem !important; }
-
         body {
             background-color: #050506;
-            background-image:
-                radial-gradient(at 0% 0%, rgba(188, 19, 254, 0.1) 0px, transparent 50%),
-                radial-gradient(at 100% 100%, rgba(0, 242, 255, 0.1) 0px, transparent 50%);
-            color: #e2e8f0;
-            width: 100vw;
+            background-image: radial-gradient(at 0% 0%, rgba(188, 19, 254, 0.1) 0px, transparent 50%),
+                              radial-gradient(at 100% 100%, rgba(0, 242, 255, 0.1) 0px, transparent 50%);
+            color: #e2e8f0; width: 100vw;
         }
-
-        .glass {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .neon-border-cyan {
-            border: 1px solid rgba(0, 242, 255, 0.3);
-            box-shadow: 0 0 10px rgba(0, 242, 255, 0.05);
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(188, 19, 254, 0.3);
-            border-radius: 10px;
-        }
-
-        @keyframes pulse-cyan {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 1; }
-        }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .neon-border-cyan { border: 1px solid rgba(0, 242, 255, 0.3); box-shadow: 0 0 10px rgba(0, 242, 255, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(188, 19, 254, 0.3); border-radius: 10px; }
+        @keyframes pulse-cyan { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
         .animate-pulse-cyan { animation: pulse-cyan 2s infinite; }
-
-        /* Ensure everything fits on desktop */
-        @media (min-width: 1024px) {
-            main { height: calc(100vh - 120px); }
-        }
+        @media (min-width: 1024px) { main { height: calc(100vh - 140px); } }
+        select, input { background: #0d0d0f; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 4px 8px; color: #fff; outline: none; }
+        select:focus, input:focus { border-color: #00f2ff; }
     </style>
 </head>
 <body class="p-4 flex flex-col gap-4 lg:h-screen lg:overflow-hidden">
-    <!-- Header -->
-    <header class="flex flex-col sm:flex-row justify-between items-center gap-4 lg:h-12 mb-2 lg:mb-0">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-obsidian-800 rounded-lg flex items-center justify-center neon-border-cyan">
-                <i class="fas fa-microphone text-neon-cyan text-lg"></i>
-            </div>
-            <div>
-                <h1 class="font-display font-bold tracking-widest text-white uppercase">Orateur <span class="text-neon-cyan">Pro</span></h1>
-                <div class="flex items-center gap-2">
-                    <span id="statusDot" class="w-1.5 h-1.5 bg-gray-600 rounded-full"></span>
-                    <span id="statusText" class="text-[10px] uppercase font-bold text-gray-500 tracking-tighter">Prêt</span>
+    <header class="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+        <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-obsidian-800 rounded-lg flex items-center justify-center neon-border-cyan">
+                    <i class="fas fa-microchip text-neon-cyan text-lg"></i>
                 </div>
+                <div>
+                    <h1 class="font-display font-bold tracking-widest text-white uppercase">Orateur <span class="text-neon-cyan">Ultra</span></h1>
+                    <div class="flex items-center gap-2">
+                        <span id="statusDot" class="w-1.5 h-1.5 bg-gray-600 rounded-full"></span>
+                        <span id="statusText" class="text-[10px] uppercase font-bold text-gray-500 tracking-tighter">Prêt</span>
+                    </div>
+                </div>
+            </div>
+            <div class="md:hidden flex items-center gap-2 bg-obsidian-900/50 px-3 py-1.5 rounded-md border border-neon-purple/30">
+                <i class="fas fa-clock text-neon-purple text-[10px]"></i>
+                <span id="timerMobile" class="font-mono font-bold text-gray-300">00:00:00</span>
             </div>
         </div>
 
-        <div class="flex items-center gap-4">
-            <div class="glass px-3 py-1.5 rounded-md flex items-center gap-2 border-l-2 border-neon-purple">
+        <div class="flex flex-wrap items-center justify-center md:justify-end gap-2 w-full md:w-auto">
+            <!-- OpenAI Toggle -->
+            <div class="glass px-3 py-1.5 rounded-md flex items-center gap-2 border-l-2 border-green-500 flex-1 sm:flex-none justify-center">
+                <i class="fas fa-brain text-green-500 text-[10px]"></i>
+                <span class="text-[10px] font-bold text-gray-400 hidden sm:inline">GPT-4o mini</span>
+                <input type="password" id="openAIKey" placeholder="OpenAI Key" class="w-20 sm:w-24 text-[9px] bg-transparent border-none focus:ring-0 p-0" value="">
+            </div>
+            <div class="hidden md:flex glass px-3 py-1.5 rounded-md items-center gap-2 border-l-2 border-neon-purple">
                 <i class="fas fa-clock text-neon-purple text-[10px]"></i>
                 <span id="timer" class="font-mono font-bold text-gray-300">00:00:00</span>
             </div>
-            <a href="auditeur.html" target="_blank" class="glass px-3 py-1.5 rounded-md text-neon-cyan hover:bg-neon-cyan/10 transition-colors flex items-center gap-2">
+            <a href="auditeur.html" target="_blank" class="glass px-3 py-1.5 rounded-md text-neon-cyan hover:bg-neon-cyan/10 transition-colors flex items-center gap-2 flex-1 sm:flex-none justify-center">
                 <i class="fas fa-external-link-alt text-[10px]"></i>
-                <span class="font-bold uppercase tracking-tighter">Lien Auditeur</span>
+                <span class="font-bold uppercase tracking-tighter">Live Auditeur</span>
             </a>
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="flex flex-col lg:grid lg:grid-cols-12 gap-4 flex-1 min-h-0">
-        <!-- Left Column -->
         <div class="lg:col-span-4 flex flex-col gap-4">
             <div class="glass rounded-xl p-4 space-y-4 neon-border-cyan flex-1 flex flex-col">
                 <div class="flex justify-between items-center">
-                    <span class="text-[10px] font-bold text-neon-cyan uppercase tracking-widest">Contrôle Acoustique</span>
+                    <span class="text-[10px] font-bold text-neon-cyan uppercase tracking-widest">Audio Intelligence</span>
                     <span id="dbValue" class="font-mono text-[10px] text-gray-500">-∞ dB</span>
                 </div>
 
-                <!-- DB Meter -->
+                <!-- Control Bar -->
+                <div class="flex gap-2">
+                    <select id="audioSource" class="flex-1 text-[10px]">
+                        <option value="mic">Microphone</option>
+                        <option value="system">Son Système (Capture)</option>
+                    </select>
+                    <div class="flex items-center gap-1 bg-obsidian-900 px-2 rounded-md">
+                        <i class="fas fa-bolt text-yellow-400 text-[9px]"></i>
+                        <span class="text-[9px] font-bold">AGC</span>
+                        <input type="checkbox" id="agcToggle" checked>
+                    </div>
+                </div>
+
                 <div class="h-1 bg-obsidian-900 rounded-full overflow-hidden">
                     <div id="dbMeter" class="h-full bg-neon-cyan transition-all duration-75" style="width: 0%"></div>
                 </div>
 
-                <!-- Visualizer -->
                 <div class="flex-1 bg-obsidian-900/50 rounded-lg overflow-hidden border border-white/5 relative">
                     <canvas id="visualizer" class="w-full h-full"></canvas>
                 </div>
 
-                <!-- Metrics Grid -->
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-2">
                     <div class="bg-obsidian-900/40 p-2 rounded-lg border border-white/5">
-                        <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Qualité Signal</p>
+                        <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Stabilité Signal</p>
                         <div class="flex items-center gap-2">
-                            <span id="qualityIndicator" class="font-bold text-gray-400">---</span>
+                            <span id="qualityIndicator" class="font-bold text-gray-400">Repos</span>
                             <span id="analysingPulse" class="hidden w-1.5 h-1.5 bg-neon-cyan rounded-full animate-pulse"></span>
                         </div>
                     </div>
                     <div class="bg-obsidian-900/40 p-2 rounded-lg border border-white/5">
                         <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Bruit Ambiant</p>
-                        <span id="noiseLabel" class="font-bold text-gray-300">0.00</span>
+                        <span id="noiseIndicator" class="font-bold text-gray-500">-∞ dB</span>
                     </div>
                     <div class="bg-obsidian-900/40 p-2 rounded-lg border border-white/5">
-                        <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Voix Secondaire</p>
-                        <span id="interferenceLabel" class="font-bold text-gray-300">0%</span>
+                        <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Parasites (SNR)</p>
+                        <span id="snrIndicator" class="font-bold text-gray-500">0%</span>
                     </div>
                     <div class="bg-obsidian-900/40 p-2 rounded-lg border border-white/5">
-                        <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Rapport SNR</p>
-                        <span id="snrLabel" class="font-bold text-gray-300">0 dB</span>
+                        <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Sensibilité</p>
+                        <input type="range" id="sensitivityRange" min="5" max="30" value="12" class="w-full h-1">
                     </div>
                 </div>
 
                 <button id="toggleBtn" class="w-full py-3 bg-neon-cyan/10 hover:bg-neon-cyan/20 border border-neon-cyan/50 rounded-lg transition-all group active:scale-95">
                     <div class="flex items-center justify-center gap-2">
                         <i class="fas fa-play text-neon-cyan" id="toggleIcon"></i>
-                        <span id="toggleText" class="font-bold text-white uppercase tracking-widest">Démarrer Session</span>
+                        <span id="toggleText" class="font-bold text-white uppercase tracking-widest">Démarrer Capture</span>
                     </div>
                 </button>
             </div>
         </div>
 
-        <!-- Right Column -->
         <div class="lg:col-span-8 flex flex-col gap-4 min-h-0">
-            <!-- Transcript Live Area -->
             <div class="glass rounded-xl p-6 flex flex-col justify-center relative overflow-hidden h-48 flex-shrink-0">
                 <div class="absolute top-3 left-4 flex items-center gap-2">
-                    <div class="w-1.5 h-1.5 rounded-full bg-neon-cyan animate-pulse-cyan"></div>
-                    <span class="text-[9px] font-bold text-neon-cyan uppercase tracking-widest">Flux Direct (Speaker)</span>
+                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
+                    <span class="text-[9px] font-bold text-green-500 uppercase tracking-widest">IA Processing Pipeline</span>
                 </div>
                 <div id="transcript" class="text-2xl font-light leading-relaxed text-white/90">
-                    <span class="text-gray-700 italic select-none">Initialisation du flux vocal requise...</span>
+                    <span class="text-gray-700 italic select-none">En attente de signal audio...</span>
                 </div>
+                <div id="aiStatus" class="absolute bottom-2 right-4 text-[9px] text-green-500/50 uppercase font-bold"></div>
             </div>
 
-            <!-- History -->
             <div class="flex-1 flex flex-col min-h-0">
                 <div class="flex items-center justify-between mb-2">
-                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Historique de Transcription</span>
-                    <button id="clearHistory" class="text-[9px] text-red-500/50 hover:text-red-500 uppercase font-bold">Vider le buffer</button>
+                    <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Historique IA Raffiné</span>
+                    <button id="clearHistory" class="text-[9px] text-red-500/50 hover:text-red-500 uppercase font-bold">Purger Historique</button>
                 </div>
-                <div id="historyList" class="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
-                    <!-- Items -->
-                </div>
+                <div id="historyList" class="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar"></div>
             </div>
         </div>
     </main>
 
     <footer class="h-10 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-600 uppercase font-bold tracking-widest">
         <div class="flex items-center gap-4">
-            <span>&copy; 2024 Orateur Pro</span>
-            <button id="hardCleanupBtn" class="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-2 py-1 rounded border border-red-500/30 transition-colors">
-                <i class="fas fa-trash-alt mr-1"></i> Nettoyage Global
+            <span>&copy; 2024 Orateur Pro Ultra</span>
+            <button id="hardCleanupBtn" class="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-2 py-1 rounded border border-red-500/30">
+                <i class="fas fa-trash-alt mr-1"></i> Full Reset
             </button>
         </div>
         <div class="flex gap-4">
-            <span>Microphone: <span id="permStatus">Inconnu</span></span>
-            <span class="text-neon-purple">Statut: En Ligne</span>
+            <span>Source: <span id="sourceLabel" class="text-neon-cyan">MIC</span></span>
+            <span class="text-neon-purple">API: <span id="apiStatus">IDLE</span></span>
         </div>
     </footer>
 
@@ -205,62 +181,59 @@
             isSpeaking: false,
             startTime: null,
             timerInterval: null,
-            history: JSON.parse(localStorage.getItem('orateur_pro_history') || '[]'),
+            history: JSON.parse(localStorage.getItem('orateur_pro_ultra_history') || '[]'),
             audio: {
                 context: null,
                 analyser: null,
                 stream: null,
+                sourceNode: null,
+                gainNode: null,
+                compressor: null,
                 metrics: { db: -100, noiseFloor: -100, snr: 0 }
             },
             sessionId: 'live_' + Math.random().toString(36).substr(2, 6),
-            webrtc: {
-                pc: null,
-                dc: null,
-                pollInterval: null,
-                candidatesAdded: new Set()
-            }
+            webrtc: { pc: null, dc: null, candidatesAdded: new Set() }
         };
 
         const elements = {
-            analysingPulse: document.getElementById('analysingPulse'),
             transcript: document.getElementById('transcript'),
             statusText: document.getElementById('statusText'),
             statusDot: document.getElementById('statusDot'),
             timer: document.getElementById('timer'),
+            timerMobile: document.getElementById('timerMobile'),
             dbValue: document.getElementById('dbValue'),
             dbMeter: document.getElementById('dbMeter'),
             visualizer: document.getElementById('visualizer'),
-            noiseLabel: document.getElementById('noiseLabel'),
-            snrLabel: document.getElementById('snrLabel'),
+            noiseIndicator: document.getElementById('noiseIndicator'),
+            snrIndicator: document.getElementById('snrIndicator'),
             qualityIndicator: document.getElementById('qualityIndicator'),
-            interferenceLabel: document.getElementById('interferenceLabel'),
             toggleBtn: document.getElementById('toggleBtn'),
             toggleIcon: document.getElementById('toggleIcon'),
             toggleText: document.getElementById('toggleText'),
             historyList: document.getElementById('historyList'),
-            clearHistory: document.getElementById('clearHistory'),
-            permStatus: document.getElementById('permStatus')
+            permStatus: { innerText: "" },
+            audioSource: document.getElementById('audioSource'),
+            agcToggle: document.getElementById('agcToggle'),
+            sensitivityRange: document.getElementById('sensitivityRange'),
+            openAIKey: document.getElementById('openAIKey'),
+            apiStatus: document.getElementById('apiStatus'),
+            aiStatus: document.getElementById('aiStatus'),
+            analysingPulse: document.getElementById('analysingPulse')
         };
 
-        // Broadcast current state to auditors via Server & WebRTC DataChannel
-        let lastBroadcastText = "";
-        async function broadcast(data, action = 'broadcast') {
-            if (data && data.text === lastBroadcastText && data.type === 'interim') return;
-            if (data) lastBroadcastText = data.text;
+        // Load OpenAI Key
+        elements.openAIKey.value = localStorage.getItem('openai_key') || '';
+        elements.openAIKey.onchange = () => localStorage.setItem('openai_key', elements.openAIKey.value);
 
-            // 1. Instant P2P Broadcast via DataChannel
-            if (state.webrtc.dc && state.webrtc.dc.readyState === 'open' && data) {
-                try {
-                    state.webrtc.dc.send(JSON.stringify({
-                        type: data.type,
-                        text: data.text,
-                        timestamp: Date.now(),
-                        is_speaking: state.isSpeaking
-                    }));
-                } catch (e) {}
+        async function broadcast(data, action = 'broadcast') {
+            if (data && data.text === "" && data.type === 'interim') return;
+
+            // 1. WebRTC DataChannel
+            if (state.webrtc.dc?.readyState === 'open' && data) {
+                state.webrtc.dc.send(JSON.stringify({ ...data, timestamp: Date.now(), is_speaking: state.isSpeaking }));
             }
 
-            // 2. Server Fallback/Polling Update
+            // 2. Server Update
             const formData = new URLSearchParams();
             formData.append('action', action);
             formData.append('session_id', state.sessionId);
@@ -269,91 +242,117 @@
                 formData.append('type', data.type);
             }
             formData.append('speaking', state.isSpeaking ? 'yes' : 'no');
-
-            fetch('post.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: formData
-            }).catch(() => {});
+            fetch('post.php', { method: 'POST', body: formData }).catch(() => {});
         }
 
-        // Heartbeat for live status - increased frequency to 2s
-        setInterval(() => {
-            if (state.isListening) broadcast(null);
-        }, 2000);
+        async function refineWithAI(text) {
+            const key = elements.openAIKey.value;
+            if (!key || !text || text.length < 15) return text;
+
+            elements.apiStatus.innerText = "REFining...";
+            elements.aiStatus.innerText = "GPT-4o-mini active...";
+
+            try {
+                const res = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+                    body: JSON.stringify({
+                        model: "gpt-4o-mini",
+                        messages: [{ role: "system", content: "Tu es un correcteur professionnel. Reformule légèrement pour corriger la grammaire et rendre le texte plus formel, sans changer le sens. Réponds UNIQUEMENT avec le texte corrigé." }, { role: "user", content: text }],
+                        temperature: 0.3
+                    })
+                });
+                const data = await res.json();
+                elements.apiStatus.innerText = "READY";
+                elements.aiStatus.innerText = "";
+                return data.choices[0].message.content.trim() || text;
+            } catch (e) {
+                console.error("OpenAI Error:", e);
+                elements.apiStatus.innerText = "ERROR";
+                return text;
+            }
+        }
 
         async function setupAudio() {
             try {
-                state.audio.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                state.audio.context = new AudioContext();
-                const source = state.audio.context.createMediaStreamSource(state.audio.stream);
+                if (state.audio.stream) {
+                    state.audio.stream.getTracks().forEach(t => t.stop());
+                }
+
+                if (elements.audioSource.value === 'system') {
+                    state.audio.stream = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: true });
+                } else {
+                    state.audio.stream = await navigator.mediaDevices.getUserMedia({ audio: {
+                        echoCancellation: true, noiseSuppression: true, autoGainControl: true
+                    }});
+                }
+
+                state.audio.context = new (window.AudioContext || window.webkitAudioContext)();
+                state.audio.sourceNode = state.audio.context.createMediaStreamSource(state.audio.stream);
+
+                // 1. Compressor (Normalization)
+                state.audio.compressor = state.audio.context.createDynamicsCompressor();
+                state.audio.compressor.threshold.setValueAtTime(-24, state.audio.context.currentTime);
+                state.audio.compressor.knee.setValueAtTime(40, state.audio.context.currentTime);
+                state.audio.compressor.ratio.setValueAtTime(12, state.audio.context.currentTime);
+                state.audio.compressor.attack.setValueAtTime(0, state.audio.context.currentTime);
+                state.audio.compressor.release.setValueAtTime(0.25, state.audio.context.currentTime);
+
+                // 2. Software Gain (Ultra Sensitivity)
+                state.audio.gainNode = state.audio.context.createGain();
+                state.audio.gainNode.gain.value = 1.0;
+
+                // 3. Analyser
                 state.audio.analyser = state.audio.context.createAnalyser();
                 state.audio.analyser.fftSize = 256;
-                source.connect(state.audio.analyser);
+
+                // Chain: Source -> Compressor -> Gain -> Analyser
+                state.audio.sourceNode.connect(state.audio.compressor);
+                state.audio.compressor.connect(state.audio.gainNode);
+                state.audio.gainNode.connect(state.audio.analyser);
 
                 initWebRTC();
                 processAudio();
             } catch (err) {
                 console.error(err);
-                alert("Accès micro refusé");
+                alert("Erreur de capture : " + err.message);
             }
         }
 
         async function initWebRTC() {
             if (state.webrtc.pc) state.webrtc.pc.close();
-
-            // Clear previous signaling for this specific session
             await fetch(`signaling.php?action=clear&session_id=${state.sessionId}`, { method: 'POST' });
 
-            state.webrtc.pc = new RTCPeerConnection({
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-            });
-
-            // Create Data Channel for Instant Transcription
+            state.webrtc.pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
             state.webrtc.dc = state.webrtc.pc.createDataChannel("transcription", { negotiated: true, id: 0 });
 
-            state.audio.stream.getTracks().forEach(track => {
+            state.audio.stream.getAudioTracks().forEach(track => {
                 state.webrtc.pc.addTrack(track, state.audio.stream);
             });
 
             state.webrtc.pc.onicecandidate = ({candidate}) => {
-                if (candidate) {
-                    fetch(`signaling.php?action=push&role=orator&session_id=${state.sessionId}`, {
-                        method: 'POST',
-                        body: JSON.stringify({ candidate })
-                    });
-                }
+                if (candidate) fetch(`signaling.php?action=push&role=orator&session_id=${state.sessionId}`, { method: 'POST', body: JSON.stringify({ candidate }) });
             };
 
             const offer = await state.webrtc.pc.createOffer();
             await state.webrtc.pc.setLocalDescription(offer);
+            await fetch(`signaling.php?action=push&role=orator&session_id=${state.sessionId}`, { method: 'POST', body: JSON.stringify({ offer }) });
 
-            await fetch(`signaling.php?action=push&role=orator&session_id=${state.sessionId}`, {
-                method: 'POST',
-                body: JSON.stringify({ offer })
-            });
-
-            // Poll for answers from multiple auditors
-            if (state.webrtc.pollInterval) clearInterval(state.webrtc.pollInterval);
             state.webrtc.pollInterval = setInterval(async () => {
                 try {
                     const res = await fetch(`signaling.php?session_id=${state.sessionId}`);
                     const data = await res.json();
-
-                    // Note: Browser P2P limited to few connections.
-                    // Here we handle the most recent handshake for simplicity in this script.
                     const lastAuditorId = Object.keys(data.answers).pop();
                     if (lastAuditorId && state.webrtc.pc.signalingState === 'have-local-offer') {
                         await state.webrtc.pc.setRemoteDescription(new RTCSessionDescription(data.answers[lastAuditorId]));
                     }
-
                     if (data.auditor_candidates && state.webrtc.pc.remoteDescription) {
                         Object.values(data.auditor_candidates).forEach(candList => {
-                            candList.forEach(candidate => {
-                                const candStr = JSON.stringify(candidate);
-                                if (candidate && !state.webrtc.candidatesAdded.has(candStr)) {
-                                    state.webrtc.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
-                                    state.webrtc.candidatesAdded.add(candStr);
+                            candList.forEach(c => {
+                                const s = JSON.stringify(c);
+                                if (!state.webrtc.candidatesAdded.has(s)) {
+                                    state.webrtc.pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{});
+                                    state.webrtc.candidatesAdded.add(s);
                                 }
                             });
                         });
@@ -374,49 +373,49 @@
             let avg = sum / dataArray.length;
             let db = 20 * Math.log10(avg / 255);
             if (isNaN(db) || db === -Infinity) db = -100;
-            state.audio.metrics.db = db;
 
-            // Speech detection logic
-            const threshold = state.audio.metrics.noiseFloor + 12;
-            state.isSpeaking = db > threshold && db > -50;
+            // AGC Logic
+            if (elements.agcToggle.checked && db > -100) {
+                if (db < -40) state.audio.gainNode.gain.value = Math.min(5.0, state.audio.gainNode.gain.value + 0.05);
+                else if (db > -10) state.audio.gainNode.gain.value = Math.max(0.5, state.audio.gainNode.gain.value - 0.1);
+            }
 
-            updateUI(db, dataArray);
+            const threshold = state.audio.metrics.noiseFloor + parseFloat(elements.sensitivityRange.value);
+            state.isSpeaking = db > threshold && db > -55;
+
+            updateAudioUI(db, dataArray);
         }
 
-        function updateUI(db, dataArray) {
+        function updateAudioUI(db, dataArray) {
             elements.dbValue.innerText = `${db.toFixed(1)} dB`;
             elements.dbMeter.style.width = `${Math.max(0, (db + 60) * 1.66)}%`;
 
             if (!state.isSpeaking) {
-                state.audio.metrics.noiseFloor = state.audio.metrics.noiseFloor * 0.95 + db * 0.05;
-                elements.noiseLabel.innerText = state.audio.metrics.noiseFloor.toFixed(2);
+                state.audio.metrics.noiseFloor = state.audio.metrics.noiseFloor * 0.98 + db * 0.02;
                 elements.qualityIndicator.innerText = "Repos";
                 elements.qualityIndicator.className = "font-bold text-gray-500";
                 elements.analysingPulse.classList.add('hidden');
+                elements.snrIndicator.innerText = "0%";
+                elements.snrIndicator.className = "font-bold text-gray-500";
             } else {
                 elements.analysingPulse.classList.remove('hidden');
                 const snr = db - state.audio.metrics.noiseFloor;
-                elements.snrLabel.innerText = `${snr.toFixed(1)} dB`;
-
-                let quality = "Médiocre";
-                let color = "text-red-500";
-                if (snr > 20) { quality = "Optimale"; color = "text-neon-cyan"; }
-                else if (snr > 10) { quality = "Bonne"; color = "text-green-400"; }
-
+                let quality = snr > 20 ? "Cristallin" : (snr > 12 ? "Optimal" : (snr > 6 ? "Correct" : "Bruit Elevé"));
+                let color = snr > 20 ? "text-neon-cyan" : (snr > 12 ? "text-green-400" : (snr > 6 ? "text-yellow-500" : "text-red-500"));
                 elements.qualityIndicator.innerText = quality;
                 elements.qualityIndicator.className = "font-bold " + color;
 
-                const interference = Math.max(0, (5 - (snr / 5)) * 10);
-                elements.interferenceLabel.innerText = `${interference.toFixed(0)}%`;
+                const snrPercent = Math.min(100, Math.max(0, (snr / 30) * 100));
+                elements.snrIndicator.innerText = `${snrPercent.toFixed(0)}%`;
+                elements.snrIndicator.className = "font-bold " + color;
             }
 
-            // Draw visualizer
+            elements.noiseIndicator.innerText = `${state.audio.metrics.noiseFloor.toFixed(0)} dB`;
+
             const canvas = elements.visualizer;
             const ctx = canvas.getContext('2d');
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            canvas.width = canvas.offsetWidth; canvas.height = canvas.offsetHeight;
             ctx.clearRect(0,0, canvas.width, canvas.height);
-
             const barWidth = (canvas.width / dataArray.length) * 2;
             let x = 0;
             for(let i=0; i<dataArray.length; i++) {
@@ -427,7 +426,6 @@
             }
         }
 
-        // --- Speech Recognition ---
         let recognition;
         if ('webkitSpeechRecognition' in window) {
             recognition = new webkitSpeechRecognition();
@@ -435,117 +433,84 @@
             recognition.continuous = true;
             recognition.interimResults = true;
 
-            // Optimization for rapid translation: process results more aggressively
-            recognition.onresult = (event) => {
+            recognition.onresult = async (event) => {
                 let interim = '';
                 let final = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        final += event.results[i][0].transcript;
-                    } else {
-                        interim += event.results[i][0].transcript;
-                    }
+                    if (event.results[i].isFinal) final += event.results[i][0].transcript;
+                    else interim += event.results[i][0].transcript;
                 }
 
                 if (final) {
-                    const phrase = final.trim();
-                    if (phrase) {
-                        const item = { text: phrase, time: new Date().toLocaleTimeString('fr-FR') };
+                    const originalText = final.trim();
+                    if (originalText) {
+                        elements.transcript.textContent = "IA Processing...";
+                        const refinedText = await refineWithAI(originalText);
+                        const item = { text: refinedText, time: new Date().toLocaleTimeString('fr-FR') };
                         state.history.unshift(item);
-                        localStorage.setItem('orateur_pro_history', JSON.stringify(state.history.slice(0,50)));
-                        elements.transcript.textContent = phrase;
+                        localStorage.setItem('orateur_pro_ultra_history', JSON.stringify(state.history.slice(0,50)));
+                        elements.transcript.textContent = refinedText;
                         renderHistory();
-                        broadcast({ type: 'final', text: phrase });
+                        broadcast({ type: 'final', text: refinedText });
                     }
                 }
-
                 if (interim) {
                     elements.transcript.textContent = interim;
                     broadcast({ type: 'interim', text: interim });
                 }
             };
-
             recognition.onend = () => { if (state.isListening) recognition.start(); };
         }
 
-        elements.toggleBtn.addEventListener('click', async () => {
+        elements.toggleBtn.onclick = async () => {
             if (!state.isListening) {
                 state.isListening = true;
                 state.startTime = Date.now();
                 state.timerInterval = setInterval(() => {
                     const diff = Math.floor((Date.now() - state.startTime)/1000);
-                    const h = String(Math.floor(diff/3600)).padStart(2,'0');
-                    const m = String(Math.floor((diff%3600)/60)).padStart(2,'0');
-                    const s = String(diff%60).padStart(2,'0');
-                    elements.timer.innerText = `${h}:${m}:${s}`;
+                    const timeStr = new Date(diff * 1000).toISOString().substr(11, 8);
+                    elements.timer.innerText = timeStr;
+                    if (elements.timerMobile) elements.timerMobile.innerText = timeStr;
                 }, 1000);
 
-                elements.toggleText.innerText = "Arrêter Session";
+                elements.toggleText.innerText = "Arrêter Capture";
                 elements.toggleIcon.className = "fas fa-stop text-red-500";
-                elements.statusDot.className = "w-1.5 h-1.5 bg-neon-cyan rounded-full shadow-[0_0_5px_cyan]";
+                elements.statusDot.className = "w-1.5 h-1.5 bg-neon-cyan rounded-full";
                 elements.statusText.innerText = "En cours";
 
-                if (!state.audio.context) await setupAudio();
-                else processAudio();
-
+                await setupAudio();
                 if (recognition) recognition.start();
-                elements.transcript.innerHTML = '<span class="text-neon-cyan/40 italic">Écoute active...</span>';
-
-                // Start Session on server
                 broadcast(null, 'start_session');
             } else {
                 state.isListening = false;
                 clearInterval(state.timerInterval);
-                elements.toggleText.innerText = "Démarrer Session";
+                elements.toggleText.innerText = "Démarrer Capture";
                 elements.toggleIcon.className = "fas fa-play text-neon-cyan";
                 elements.statusDot.className = "w-1.5 h-1.5 bg-gray-600 rounded-full";
                 elements.statusText.innerText = "Prêt";
-
-                // Stop Session on server
                 broadcast(null, 'stop_session');
-
                 if (recognition) recognition.stop();
-                elements.transcript.innerHTML = '<span class="text-gray-700 italic select-none">Session terminée.</span>';
+                if (state.audio.stream) state.audio.stream.getTracks().forEach(t => t.stop());
             }
-        });
+        };
 
         function renderHistory() {
             elements.historyList.innerHTML = state.history.map(h => `
-                <div class="glass p-3 rounded-lg border-l-2 border-neon-purple flex justify-between items-center group">
+                <div class="glass p-3 rounded-lg border-l-2 border-green-500 flex justify-between items-center">
                     <p class="text-[12px] text-gray-300 flex-1">${h.text}</p>
-                    <span class="text-[9px] text-gray-600 font-mono">${h.time}</span>
+                    <span class="text-[9px] text-gray-600 font-mono ml-4">${h.time}</span>
                 </div>
             `).join('');
         }
 
-        elements.clearHistory.addEventListener('click', () => {
-            state.history = [];
-            localStorage.removeItem('orateur_pro_history');
-            renderHistory();
-        });
+        elements.clearHistory.onclick = () => { state.history = []; localStorage.removeItem('orateur_pro_ultra_history'); renderHistory(); };
 
         document.getElementById('hardCleanupBtn').onclick = async () => {
-            if (confirm("Attention : Cela va supprimer TOUTES les sessions en cours et TOUS les fichiers sur le serveur. Confirmer ?")) {
-                const formData = new URLSearchParams();
-                formData.append('action', 'hard_cleanup');
-                try {
-                    const res = await fetch('post.php', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: formData
-                    });
-                    const data = await res.json();
-                    if (data.status === 'hard_cleanup_done') alert("Nettoyage complet effectué.");
-                } catch(e) { alert("Erreur lors du nettoyage."); }
+            if (confirm("Reset complet ?")) {
+                await fetch('post.php?action=hard_cleanup', { method: 'POST' });
+                location.reload();
             }
         };
-
-        // Permissions
-        navigator.permissions.query({name:'microphone'}).then(res => {
-            const map = { granted: 'Accordé', denied: 'Refusé', prompt: 'À demander' };
-            elements.permStatus.innerText = map[res.state];
-            res.onchange = () => elements.permStatus.innerText = map[res.state];
-        });
 
         renderHistory();
     </script>
