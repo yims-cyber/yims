@@ -5,7 +5,6 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 $sessionFile = 'sessions.json';
 $logsFile = 'broadcast_debug.log';
 
-// Helper for atomic operations
 function atomic_write($file, $data) {
     $fp = fopen($file, 'c+');
     if (flock($fp, LOCK_EX)) {
@@ -31,7 +30,6 @@ function atomic_read($file) {
     return $data;
 }
 
-// Action selection
 $action = $_POST['action'] ?? $_GET['action'] ?? 'get_sessions';
 $sessionId = $_POST['session_id'] ?? $_GET['session_id'] ?? '';
 
@@ -44,7 +42,6 @@ if ($action === 'start_session' && !empty($sessionId)) {
     ];
     atomic_write($sessionFile, $sessions);
 
-    // Create initial live file
     $initialData = [
         'is_live' => true,
         'is_speaking' => false,
@@ -53,8 +50,6 @@ if ($action === 'start_session' && !empty($sessionId)) {
         'timestamp' => round(microtime(true) * 1000)
     ];
     atomic_write("live_{$sessionId}.json", $initialData);
-
-    file_put_contents($logsFile, "[START] Session $sessionId created at " . date('H:i:s') . PHP_EOL, FILE_APPEND);
     echo json_encode(['status' => 'success']);
 
 } elseif ($action === 'broadcast' && !empty($sessionId)) {
@@ -73,13 +68,24 @@ if ($action === 'start_session' && !empty($sessionId)) {
     $sessions = atomic_read($sessionFile) ?? [];
     if (isset($sessions[$sessionId])) {
         unset($sessions[$sessionId]);
-        atomic_write($sessionFile, $sessions);
+        if (empty($sessions)) {
+            if (file_exists($sessionFile)) unlink($sessionFile);
+        } else {
+            atomic_write($sessionFile, $sessions);
+        }
     }
-    // Update live file to notify auditors
-    $finalData = ['is_live' => false, 'timestamp' => round(microtime(true) * 1000)];
-    atomic_write("live_{$sessionId}.json", $finalData);
 
-    file_put_contents($logsFile, "[STOP] Session $sessionId terminated at " . date('H:i:s') . PHP_EOL, FILE_APPEND);
+    // Cleanup
+    $filesToDelete = ["live_{$sessionId}.json", "signaling_{$sessionId}.json", "broadcast.json"];
+    foreach($filesToDelete as $f) {
+        if (file_exists($f)) unlink($f);
+    }
+
+    if (empty($sessions)) {
+        if (file_exists($logsFile)) unlink($logsFile);
+        if (file_exists('voix.log')) unlink('voix.log');
+    }
+
     echo json_encode(['status' => 'stopped']);
 
 } elseif ($action === 'get_sessions') {

@@ -1,0 +1,15 @@
+{
+  "name": "Orateur Pro",
+  "short_name": "OrateurPro",
+  "start_url": "auditeur.html",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#1877f2",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/1083/1083814.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
