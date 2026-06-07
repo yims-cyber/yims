@@ -204,6 +204,7 @@
                 stream: null,
                 metrics: { db: -100, noiseFloor: -100, snr: 0 }
             },
+            sessionId: 'live_' + Math.random().toString(36).substr(2, 6),
             webrtc: {
                 pc: null,
                 pollInterval: null,
@@ -233,17 +234,17 @@
 
         // Broadcast current state to auditors via Server
         let lastBroadcastText = "";
-        async function broadcast(data) {
+        async function broadcast(data, action = 'broadcast') {
             if (data && data.text === lastBroadcastText && data.type === 'interim') return;
             if (data) lastBroadcastText = data.text;
 
             const formData = new URLSearchParams();
+            formData.append('action', action);
+            formData.append('session_id', state.sessionId);
             if (data) {
                 formData.append('msg', data.text);
                 formData.append('type', data.type);
             }
-            formData.append('post', 'yes');
-            formData.append('live_status', state.isListening ? 'active' : 'inactive');
             formData.append('speaking', state.isSpeaking ? 'yes' : 'no');
 
             fetch('post.php', {
@@ -457,8 +458,8 @@
                 if (recognition) recognition.start();
                 elements.transcript.innerHTML = '<span class="text-neon-cyan/40 italic">Écoute active...</span>';
 
-                // Immediate notification to all auditors that live is active
-                broadcast(null);
+                // Start Session on server
+                broadcast(null, 'start_session');
             } else {
                 state.isListening = false;
                 clearInterval(state.timerInterval);
@@ -466,6 +467,10 @@
                 elements.toggleIcon.className = "fas fa-play text-neon-cyan";
                 elements.statusDot.className = "w-1.5 h-1.5 bg-gray-600 rounded-full";
                 elements.statusText.innerText = "Prêt";
+
+                // Stop Session on server
+                broadcast(null, 'stop_session');
+
                 if (recognition) recognition.stop();
                 elements.transcript.innerHTML = '<span class="text-gray-700 italic select-none">Session terminée.</span>';
             }

@@ -1,61 +1,92 @@
 <?php
 header('Content-Type: application/json');
 header('Cache-Control: no-cache, no-store, must-revalidate');
-header('Pragma: no-cache');
-header('Expires: 0');
 
-$file = 'broadcast.json';
+$sessionFile = 'sessions.json';
+$logsFile = 'broadcast_debug.log';
 
-// Function to safely read the file
-function safe_read($file) {
+// Helper for atomic operations
+function atomic_write($file, $data) {
+    $fp = fopen($file, 'c+');
+    if (flock($fp, LOCK_EX)) {
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, json_encode($data));
+        fflush($fp);
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+}
+
+function atomic_read($file) {
     if (!file_exists($file)) return null;
     $fp = fopen($file, 'r');
-    if (!$fp) return null;
-    flock($fp, LOCK_SH);
-    $content = file_get_contents($file);
-    flock($fp, LOCK_UN);
+    $data = null;
+    if (flock($fp, LOCK_SH)) {
+        $content = stream_get_contents($fp);
+        $data = json_decode($content, true);
+        flock($fp, LOCK_UN);
+    }
     fclose($fp);
-    return json_decode($content, true);
+    return $data;
 }
 
-// Function to safely write the file
-function safe_write($file, $data) {
-    $fp = fopen($file, 'w');
-    if (!$fp) return false;
-    flock($fp, LOCK_EX);
-    fwrite($fp, json_encode($data));
-    flock($fp, LOCK_UN);
-    fclose($fp);
-    return true;
-}
+// Action selection
+$action = $_POST['action'] ?? $_GET['action'] ?? 'get_sessions';
+$sessionId = $_POST['session_id'] ?? $_GET['session_id'] ?? '';
 
-$data = safe_read($file) ?? [
-    'type' => 'status',
-    'text' => '',
-    'timestamp' => 0,
-    'is_live' => false,
-    'is_speaking' => false
-];
+if ($action === 'start_session' && !empty($sessionId)) {
+    $sessions = atomic_read($sessionFile) ?? [];
+    $sessions[$sessionId] = [
+        'id' => $sessionId,
+        'start_time' => time(),
+        'status' => 'active'
+    ];
+    atomic_write($sessionFile, $sessions);
 
-if (isset($_POST['post']) && $_POST['post'] == 'yes') {
-    if (isset($_POST['msg'])) {
-        $data['text'] = $_POST['msg'];
-        $data['type'] = $_POST['type'] ?? 'final';
-    }
+    // Create initial live file
+    $initialData = [
+        'is_live' => true,
+        'is_speaking' => false,
+        'text' => '',
+        'type' => 'status',
+        'timestamp' => round(microtime(true) * 1000)
+    ];
+    atomic_write("live_{$sessionId}.json", $initialData);
 
-    if (isset($_POST['live_status'])) {
-        $data['is_live'] = ($_POST['live_status'] === 'active');
-    }
-
-    if (isset($_POST['speaking'])) {
-        $data['is_speaking'] = ($_POST['speaking'] === 'yes');
-    }
-
-    $data['timestamp'] = round(microtime(true) * 1000);
-    safe_write($file, $data);
+    file_put_contents($logsFile, "[START] Session $sessionId created at " . date('H:i:s') . PHP_EOL, FILE_APPEND);
     echo json_encode(['status' => 'success']);
+
+} elseif ($action === 'broadcast' && !empty($sessionId)) {
+    $liveFile = "live_{$sessionId}.json";
+    $data = [
+        'is_live' => true,
+        'is_speaking' => ($_POST['speaking'] === 'yes'),
+        'text' => $_POST['msg'] ?? '',
+        'type' => $_POST['type'] ?? 'interim',
+        'timestamp' => round(microtime(true) * 1000)
+    ];
+    atomic_write($liveFile, $data);
+    echo json_encode(['status' => 'broadcasted']);
+
+} elseif ($action === 'stop_session' && !empty($sessionId)) {
+    $sessions = atomic_read($sessionFile) ?? [];
+    if (isset($sessions[$sessionId])) {
+        unset($sessions[$sessionId]);
+        atomic_write($sessionFile, $sessions);
+    }
+    // Update live file to notify auditors
+    $finalData = ['is_live' => false, 'timestamp' => round(microtime(true) * 1000)];
+    atomic_write("live_{$sessionId}.json", $finalData);
+
+    file_put_contents($logsFile, "[STOP] Session $sessionId terminated at " . date('H:i:s') . PHP_EOL, FILE_APPEND);
+    echo json_encode(['status' => 'stopped']);
+
+} elseif ($action === 'get_sessions') {
+    $sessions = atomic_read($sessionFile) ?? [];
+    echo json_encode(['sessions' => array_values($sessions), 'server_time' => round(microtime(true) * 1000)]);
+
 } else {
-    $data['server_time'] = round(microtime(true) * 1000);
-    echo json_encode($data);
+    echo json_encode(['error' => 'Invalid action']);
 }
 ?>

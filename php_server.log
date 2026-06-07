@@ -1,0 +1,4 @@
+[Sun Jun  7 05:32:11 2026] PHP 8.3.6 Development Server (http://localhost:8000) started
+[Sun Jun  7 05:32:12 2026] [::1]:47776 Accepted
+[Sun Jun  7 05:32:12 2026] [::1]:47776 [200]: POST /post.php
+[Sun Jun  7 05:32:12 2026] [::1]:47776 Closing
