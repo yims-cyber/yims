@@ -285,44 +285,67 @@
         UI.close.onclick = UI.overlay.onclick = () => { UI.menu.classList.remove('open'); UI.overlay.classList.remove('show'); };
         UI.theme.onclick = () => document.body.classList.toggle('dark');
 
-        // TTS Logic
+        // TTS Logic with debounce and error handling
+        let ttsTimeout = null;
         function speak(text) {
             if (!ttsActive || !text) return;
-            try {
-                synth.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                const target = UI.lang.value === 'none' ? 'fr-FR' : UI.lang.value;
-                utterance.lang = target;
 
-                const voices = synth.getVoices();
-                utterance.voice = voices.find(v => v.lang.startsWith(target) && (v.name.includes('Google') || v.name.includes('Premium'))) || voices.find(v => v.lang.startsWith(target));
+            // Clear any pending speak request
+            if (ttsTimeout) clearTimeout(ttsTimeout);
 
-                utterance.rate = parseFloat(UI.rate.value);
+            ttsTimeout = setTimeout(() => {
+                try {
+                    // Stop current speaking
+                    synth.cancel();
 
-                utterance.onerror = (e) => logVoice("TTS Error: " + e.error);
-                utterance.onstart = () => logVoice("TTS Start: " + text.substring(0, 20));
+                    // Small delay after cancel to allow the engine to reset (crucial for Chrome)
+                    setTimeout(() => {
+                        const utterance = new SpeechSynthesisUtterance(text);
+                        const target = UI.lang.value === 'none' ? 'fr-FR' : UI.lang.value;
+                        utterance.lang = target;
 
-                synth.speak(utterance);
-            } catch (err) {
-                logVoice("TTS Exception: " + err.message);
-            }
+                        const voices = synth.getVoices();
+                        const voice = voices.find(v => v.lang.startsWith(target) && (v.name.includes('Google') || v.name.includes('Premium')))
+                                      || voices.find(v => v.lang.startsWith(target));
+
+                        if (voice) utterance.voice = voice;
+                        utterance.rate = parseFloat(UI.rate.value);
+
+                        utterance.onerror = (e) => logVoice(`TTS Error: ${e.error} | Text: ${text.substring(0,20)} | Voice: ${voice ? voice.name : 'none'}`);
+                        utterance.onstart = () => logVoice("TTS Start: " + text.substring(0, 20));
+
+                        synth.speak(utterance);
+                    }, 50);
+                } catch (err) {
+                    logVoice("TTS Exception: " + err.message);
+                }
+            }, 100); // 100ms debounce
         }
+
+        let lastTestTrigger = 0;
+        UI.test.onclick = () => {
+            const now = Date.now();
+            if (now - lastTestTrigger < 1000) return; // Prevent spamming
+            lastTestTrigger = now;
+
+            logVoice("Test audio triggered");
+            speak("Test du système audio Orateur Pro.");
+        };
 
         UI.speaker.onclick = () => {
             ttsActive = !ttsActive;
             UI.speakerIcon.className = ttsActive ? "fas fa-volume-up text-fb" : "fas fa-volume-mute text-red-500";
             if (ttsActive) {
                 logVoice("Speaker activated by user");
-                const unlock = new SpeechSynthesisUtterance("");
+                synth.cancel();
+                const unlock = new SpeechSynthesisUtterance("Lecture activée");
+                unlock.lang = 'fr-FR';
+                unlock.volume = 0.5;
                 synth.speak(unlock);
+            } else {
+                synth.cancel();
+                logVoice("Speaker deactivated");
             }
-        };
-
-        UI.test.onclick = () => {
-            logVoice("Test audio triggered");
-            const test = new SpeechSynthesisUtterance("Test du système audio Orateur Pro.");
-            test.lang = 'fr-FR';
-            synth.speak(test);
         };
 
         async function fastTranslate(text) {
