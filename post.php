@@ -74,7 +74,7 @@ if ($action === 'start_session' && !empty($sessionId)) {
             'timestamp' => round(microtime(true) * 1000)
         ];
         atomic_write($liveFile, $endData);
-        usleep(500000); // Give 500ms for auditors to see the status before deletion
+        sleep(2); // Give 2 seconds for auditors to see the status before deletion
     }
 
     $sessions = atomic_read($sessionFile) ?? [];

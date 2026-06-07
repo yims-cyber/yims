@@ -170,6 +170,7 @@
             </button>
         </div>
         <div class="flex gap-4">
+            <span id="permStatus"></span>
             <span>Source: <span id="sourceLabel" class="text-neon-cyan">MIC</span></span>
             <span class="text-neon-purple">API: <span id="apiStatus">IDLE</span></span>
         </div>
@@ -211,7 +212,7 @@
             toggleIcon: document.getElementById('toggleIcon'),
             toggleText: document.getElementById('toggleText'),
             historyList: document.getElementById('historyList'),
-            permStatus: { innerText: "" },
+            permStatus: document.getElementById('permStatus'),
             audioSource: document.getElementById('audioSource'),
             agcToggle: document.getElementById('agcToggle'),
             sensitivityRange: document.getElementById('sensitivityRange'),
@@ -504,6 +505,15 @@
         }
 
         elements.clearHistory.onclick = () => { state.history = []; localStorage.removeItem('orateur_pro_ultra_history'); renderHistory(); };
+
+        window.addEventListener('beforeunload', () => {
+            if (state.isListening) {
+                const fd = new FormData();
+                fd.append('action', 'stop_session');
+                fd.append('session_id', state.sessionId);
+                navigator.sendBeacon('post.php', fd);
+            }
+        });
 
         document.getElementById('hardCleanupBtn').onclick = async () => {
             if (confirm("Reset complet (Serveur + Local) ?")) {

@@ -296,17 +296,27 @@
         async function pollLive() {
             if (!currentSessionId) return;
             try {
+                // High-priority check for session existence
                 const res = await fetch(`live_${currentSessionId}.json?t=` + Date.now(), { cache: 'no-store' });
-                if (!res.ok) throw new Error("Network error");
+
+                if (!res.ok) {
+                    // Immediate cross-verification with central registry
+                    const sessionCheck = await fetch('post.php?action=get_sessions&t=' + Date.now());
+                    const sData = await sessionCheck.json();
+                    if (!sData.sessions || !sData.sessions.some(s => s.id === currentSessionId)) {
+                        disconnect();
+                        return;
+                    }
+                    throw new Error("Temporary connection glitch");
+                }
 
                 const data = await res.json();
                 retryCount = 0;
                 UI.retryToast.style.display = 'none';
 
-                if (!data.is_live) {
-                    const sessionCheck = await fetch('post.php?action=get_sessions&t=' + Date.now());
-                    const sData = await sessionCheck.json();
-                    if (!sData.sessions || !sData.sessions.some(s => s.id === currentSessionId)) { disconnect(); return; }
+                if (data.is_live === false) {
+                    disconnect();
+                    return;
                 }
 
                 if (data.timestamp > lastTS) {
@@ -423,22 +433,37 @@
             isSpeaking = true;
             document.getElementById('studioBadge')?.classList.add('bg-fb', 'text-white', 'shadow-[0_0_10px_rgba(24,119,242,0.5)]');
             const item = ttsQueue.shift();
-            const utt = new SpeechSynthesisUtterance(item.text);
+
+            // Expert Diction: Ensure text is clean and well-structured for the "Professor" tone
+            const cleanText = item.text.replace(/([.!?])\1+/g, '$1').trim();
+            if (!cleanText) return playNextInQueue();
+
+            const utt = new SpeechSynthesisUtterance(cleanText);
             utt.lang = item.lang;
 
             const voices = synth.getVoices();
-            // Prioritize Neural and Premium voices for "Human-like" experience
+            // Oratory Expertise: Prioritize voices known for clear diction and professorial tone
             const preferred = voices.find(v => v.lang === utt.lang && (v.name.includes('Neural') || v.name.includes('Natural'))) ||
                               voices.find(v => v.lang === utt.lang && (v.name.includes('Google') || v.name.includes('Premium'))) ||
                               voices.find(v => v.lang.startsWith(utt.lang.split('-')[0])) || voices[0];
 
             utt.voice = preferred;
-            utt.rate = parseFloat(UI.rate.value);
+
+            // Professor Logic: Deliberate articulation. Slightly slower rate (0.95 - 1.05) yields highest perceived expertise.
+            const userRate = parseFloat(UI.rate.value);
+            // We clamp the "Expert" rate to be stable and authoritative
+            utt.rate = Math.max(0.9, Math.min(1.1, userRate));
+
+            // Mastery of Pitch: A stable, slightly lower pitch often conveys more authority
             utt.pitch = 1.0;
             utt.volume = 1.0;
 
-            utt.onstart = () => fadeAudio(rtc.audio, UI.vol.value * 0.1);
-            utt.onend = () => playNextInQueue();
+            // Professional Ducking Chain
+            utt.onstart = () => fadeAudio(rtc.audio, UI.vol.value * 0.05); // Near-silence for the orator to let the "Professor" lead
+            utt.onend = () => {
+                // Thoughtful pause between sentences to simulate intellectual reflection
+                setTimeout(playNextInQueue, 400);
+            };
             utt.onerror = () => playNextInQueue();
 
             synth.speak(utt);
