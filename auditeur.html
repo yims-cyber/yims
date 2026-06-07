@@ -85,7 +85,9 @@
         <!-- Discovery Screen -->
         <div id="discovery-screen" class="animate-fade-in">
             <div class="relative mb-8">
-                <img src="https://images.unsplash.com/photo-1516280440614-37939bbdd4f1?q=80&w=500&auto=format&fit=crop" class="preacher-img" alt="Prédicateur">
+                <div class="preacher-img bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+                    <img src="https://images.unsplash.com/photo-1516280440614-37939bbdd4f1?q=80&w=500&auto=format&fit=crop" class="w-full h-full object-cover" alt="Prédicateur" onerror="this.parentElement.innerHTML='<i class=\'fas fa-user-tie text-5xl text-slate-400\'></i>'">
+                </div>
                 <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-fb text-white px-5 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em] shadow-2xl">STUDIO</div>
             </div>
             <div class="spectrum">
@@ -146,6 +148,9 @@
                     <span class="font-bold">Mode Sombre</span>
                     <button id="themeToggle" class="btn-circle shadow-sm"><i class="fas fa-moon dark:hidden"></i><i class="fas fa-sun hidden dark:block text-yellow-400"></i></button>
                 </div>
+                <button id="installBtn" class="hidden w-full p-4 bg-fb text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3">
+                    <i class="fas fa-download"></i> Installer l'App
+                </button>
                 <div class="space-y-2 pt-4 border-t border-slate-100 dark:border-white/5">
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Volume Direct</label>
                     <input type="range" id="liveVolume" min="0" max="1" step="0.1" value="0.8">
@@ -335,6 +340,22 @@
         document.getElementById('openMenu').onclick = () => { UI.menu.classList.add('open'); UI.overlay.classList.add('show'); };
         document.getElementById('closeMenu').onclick = UI.overlay.onclick = () => { UI.menu.classList.remove('open'); UI.overlay.classList.remove('show'); };
         document.getElementById('themeToggle').onclick = () => document.documentElement.classList.toggle('dark');
+
+        // PWA Installation
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.classList.remove('hidden');
+        });
+        installBtn.onclick = async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') installBtn.classList.add('hidden');
+            deferredPrompt = null;
+        };
 
         fetchSessions();
     </script>

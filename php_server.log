@@ -1,4 +1,55 @@
-[Sun Jun  7 07:00:10 2026] PHP 8.3.6 Development Server (http://localhost:8000) started
-[Sun Jun  7 07:00:12 2026] [::1]:44052 Accepted
-[Sun Jun  7 07:00:12 2026] [::1]:44052 [200]: POST /post.php
-[Sun Jun  7 07:00:12 2026] [::1]:44052 Closing
+[Sun Jun  7 07:45:41 2026] PHP 8.3.6 Development Server (http://localhost:8000) started
+[Sun Jun  7 07:46:28 2026] [::1]:56754 Accepted
+[Sun Jun  7 07:46:28 2026] [::1]:56754 [200]: GET /index.html
+[Sun Jun  7 07:46:28 2026] [::1]:56754 Closing
+[Sun Jun  7 07:46:29 2026] [::1]:38372 Accepted
+[Sun Jun  7 07:46:29 2026] [::1]:38372 [200]: GET /auditeur.html
+[Sun Jun  7 07:46:29 2026] [::1]:38372 Closing
+[Sun Jun  7 07:46:30 2026] [::1]:38376 Accepted
+[Sun Jun  7 07:46:30 2026] [::1]:38376 [200]: GET /post.php?action=get_sessions&t=1780818390427
+[Sun Jun  7 07:46:30 2026] [::1]:38376 Closing
+[Sun Jun  7 07:46:30 2026] [::1]:38386 Accepted
+[Sun Jun  7 07:46:30 2026] [::1]:38386 [200]: GET /sw.js
+[Sun Jun  7 07:46:30 2026] [::1]:38386 Closing
+[Sun Jun  7 07:46:33 2026] [::1]:38388 Accepted
+[Sun Jun  7 07:46:33 2026] [::1]:38388 [200]: GET /post.php?action=get_sessions&t=1780818393427
+[Sun Jun  7 07:46:33 2026] [::1]:38388 Closing
+[Sun Jun  7 07:46:36 2026] [::1]:38392 Accepted
+[Sun Jun  7 07:46:36 2026] [::1]:38392 [200]: GET /post.php?action=get_sessions&t=1780818396427
+[Sun Jun  7 07:46:36 2026] [::1]:38392 Closing
+[Sun Jun  7 07:46:39 2026] [::1]:37938 Accepted
+[Sun Jun  7 07:46:39 2026] [::1]:37938 [200]: GET /post.php?action=get_sessions&t=1780818399427
+[Sun Jun  7 07:46:39 2026] [::1]:37938 Closing
+[Sun Jun  7 07:46:42 2026] [::1]:37942 Accepted
+[Sun Jun  7 07:46:42 2026] [::1]:37942 [200]: GET /post.php?action=get_sessions&t=1780818402427
+[Sun Jun  7 07:46:42 2026] [::1]:37942 Closing
+[Sun Jun  7 07:46:45 2026] [::1]:37948 Accepted
+[Sun Jun  7 07:46:45 2026] [::1]:37948 [200]: GET /post.php?action=get_sessions&t=1780818405427
+[Sun Jun  7 07:46:45 2026] [::1]:37948 Closing
+[Sun Jun  7 07:46:48 2026] [::1]:37952 Accepted
+[Sun Jun  7 07:46:48 2026] [::1]:37952 [200]: GET /post.php?action=get_sessions&t=1780818408427
+[Sun Jun  7 07:46:48 2026] [::1]:37952 Closing
+[Sun Jun  7 07:46:51 2026] [::1]:36602 Accepted
+[Sun Jun  7 07:46:51 2026] [::1]:36602 [200]: GET /post.php?action=get_sessions&t=1780818411427
+[Sun Jun  7 07:46:51 2026] [::1]:36602 Closing
+[Sun Jun  7 07:46:54 2026] [::1]:36604 Accepted
+[Sun Jun  7 07:46:54 2026] [::1]:36604 [200]: GET /post.php?action=get_sessions&t=1780818414427
+[Sun Jun  7 07:46:54 2026] [::1]:36604 Closing
+[Sun Jun  7 07:46:57 2026] [::1]:36616 Accepted
+[Sun Jun  7 07:46:57 2026] [::1]:36616 [200]: GET /post.php?action=get_sessions&t=1780818417427
+[Sun Jun  7 07:46:57 2026] [::1]:36616 Closing
+[Sun Jun  7 07:47:00 2026] [::1]:46146 Accepted
+[Sun Jun  7 07:47:00 2026] [::1]:46146 [200]: GET /post.php?action=get_sessions&t=1780818420427
+[Sun Jun  7 07:47:00 2026] [::1]:46146 Closing
+[Sun Jun  7 07:48:31 2026] [::1]:46750 Accepted
+[Sun Jun  7 07:48:31 2026] [::1]:46750 [200]: GET /index.html
+[Sun Jun  7 07:48:31 2026] [::1]:46750 Closing
+[Sun Jun  7 07:48:32 2026] [::1]:46758 Accepted
+[Sun Jun  7 07:48:32 2026] [::1]:46758 [200]: GET /auditeur.html
+[Sun Jun  7 07:48:32 2026] [::1]:46758 Closing
+[Sun Jun  7 07:48:32 2026] [::1]:46772 Accepted
+[Sun Jun  7 07:48:32 2026] [::1]:46772 [200]: GET /post.php?action=get_sessions&t=1780818512518
+[Sun Jun  7 07:48:32 2026] [::1]:46772 Closing
+[Sun Jun  7 07:48:32 2026] [::1]:46778 Accepted
+[Sun Jun  7 07:48:32 2026] [::1]:46778 [200]: GET /sw.js
+[Sun Jun  7 07:48:32 2026] [::1]:46778 Closing

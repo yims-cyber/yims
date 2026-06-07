@@ -132,7 +132,10 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div class="bg-obsidian-900/40 p-2 rounded-lg border border-white/5">
                         <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Qualité Signal</p>
-                        <span id="qualityIndicator" class="font-bold text-gray-400">---</span>
+                        <div class="flex items-center gap-2">
+                            <span id="qualityIndicator" class="font-bold text-gray-400">---</span>
+                            <span id="analysingPulse" class="hidden w-1.5 h-1.5 bg-neon-cyan rounded-full animate-pulse"></span>
+                        </div>
                     </div>
                     <div class="bg-obsidian-900/40 p-2 rounded-lg border border-white/5">
                         <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Bruit Ambiant</p>
@@ -183,8 +186,13 @@
         </div>
     </main>
 
-    <footer class="h-8 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-600 uppercase font-bold tracking-widest">
-        <span>&copy; 2024 Orateur Pro // Système de Communication Temps Réel</span>
+    <footer class="h-10 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-600 uppercase font-bold tracking-widest">
+        <div class="flex items-center gap-4">
+            <span>&copy; 2024 Orateur Pro</span>
+            <button id="hardCleanupBtn" class="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-2 py-1 rounded border border-red-500/30 transition-colors">
+                <i class="fas fa-trash-alt mr-1"></i> Nettoyage Global
+            </button>
+        </div>
         <div class="flex gap-4">
             <span>Microphone: <span id="permStatus">Inconnu</span></span>
             <span class="text-neon-purple">Statut: En Ligne</span>
@@ -213,6 +221,7 @@
         };
 
         const elements = {
+            analysingPulse: document.getElementById('analysingPulse'),
             transcript: document.getElementById('transcript'),
             statusText: document.getElementById('statusText'),
             statusDot: document.getElementById('statusDot'),
@@ -366,7 +375,9 @@
                 elements.noiseLabel.innerText = state.audio.metrics.noiseFloor.toFixed(2);
                 elements.qualityIndicator.innerText = "Repos";
                 elements.qualityIndicator.className = "font-bold text-gray-500";
+                elements.analysingPulse.classList.add('hidden');
             } else {
+                elements.analysingPulse.classList.remove('hidden');
                 const snr = db - state.audio.metrics.noiseFloor;
                 elements.snrLabel.innerText = `${snr.toFixed(1)} dB`;
 
@@ -495,6 +506,22 @@
             localStorage.removeItem('orateur_pro_history');
             renderHistory();
         });
+
+        document.getElementById('hardCleanupBtn').onclick = async () => {
+            if (confirm("Attention : Cela va supprimer TOUTES les sessions en cours et TOUS les fichiers sur le serveur. Confirmer ?")) {
+                const formData = new URLSearchParams();
+                formData.append('action', 'hard_cleanup');
+                try {
+                    const res = await fetch('post.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.status === 'hard_cleanup_done') alert("Nettoyage complet effectué.");
+                } catch(e) { alert("Erreur lors du nettoyage."); }
+            }
+        };
 
         // Permissions
         navigator.permissions.query({name:'microphone'}).then(res => {

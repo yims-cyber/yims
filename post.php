@@ -88,6 +88,20 @@ if ($action === 'start_session' && !empty($sessionId)) {
 
     echo json_encode(['status' => 'stopped']);
 
+} elseif ($action === 'hard_cleanup') {
+    // Delete registry
+    if (file_exists($sessionFile)) unlink($sessionFile);
+    if (file_exists($logsFile)) unlink($logsFile);
+    if (file_exists('voix.log')) unlink('voix.log');
+    if (file_exists('broadcast.json')) unlink('broadcast.json');
+    if (file_exists('webrtc_signaling.json')) unlink('webrtc_signaling.json');
+
+    // Delete all live and signaling files
+    foreach (glob("live_*.json") as $f) unlink($f);
+    foreach (glob("signaling_*.json") as $f) unlink($f);
+
+    echo json_encode(['status' => 'hard_cleanup_done']);
+
 } elseif ($action === 'get_sessions') {
     $sessions = atomic_read($sessionFile) ?? [];
     echo json_encode(['sessions' => array_values($sessions), 'server_time' => round(microtime(true) * 1000)]);
