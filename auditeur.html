@@ -83,9 +83,13 @@
 
         input[type="range"] { width: 100%; background: #f0f2f5; border: 1px solid #dddfe2; border-radius: 12px; padding: 10px 14px; outline: none; font-weight: 600; }
         .dark input[type="range"] { background: #3a3b3c; border: 1px solid #3e4042; color: white; }
+
+        /* Toast notifications for robustness */
+        #retryToast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #ff9800; color: white; padding: 10px 20px; border-radius: 50px; z-index: 1000; font-weight: bold; display: none; }
     </style>
 </head>
 <body class="light">
+    <div id="retryToast">Connexion instable... Reconnexion en cours</div>
     <div class="app-container">
 
         <!-- Discovery Screen -->
@@ -201,13 +205,16 @@
             vol: document.getElementById('liveVolume'),
             rate: document.getElementById('rateRange'),
             menu: document.getElementById('sideMenu'),
-            overlay: document.getElementById('overlay')
+            overlay: document.getElementById('overlay'),
+            retryToast: document.getElementById('retryToast')
         };
 
         let currentSessionId = null;
         let lastTS = 0;
         let charIndex = 0;
         let selectedLang = "fr-FR";
+        let retryCount = 0;
+        const MAX_RETRIES = 15; // Robustness: try for ~5 seconds before giving up
         const auditorId = 'aud_' + Math.random().toString(36).substr(2, 6);
         const synth = window.speechSynthesis;
         const rtc = { pc: null, audio: new Audio(), candidatesAdded: new Set() };
@@ -218,7 +225,7 @@
                 UI.langBar.querySelectorAll('.lang-chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 selectedLang = chip.dataset.lang;
-                charIndex = 0; // Reset index to re-translate if needed (optionally)
+                charIndex = 0;
             };
         });
 
@@ -265,6 +272,7 @@
 
         window.joinSession = (id) => {
             currentSessionId = id;
+            retryCount = 0;
             UI.discovery.style.display = 'none';
             const unlock = new SpeechSynthesisUtterance("");
             synth.speak(unlock);
@@ -278,10 +286,21 @@
             try {
                 const res = await fetch(`live_${currentSessionId}.json?t=` + Date.now(), { cache: 'no-store' });
 
-                if (res.status === 404) { disconnect(); return; }
+                if (!res.ok) {
+                    throw new Error("Network error");
+                }
 
                 const data = await res.json();
-                if (!data.is_live) { disconnect(); return; }
+                retryCount = 0; // Success, reset retries
+                UI.retryToast.style.display = 'none';
+
+                if (!data.is_live) {
+                    // Confirm session is really dead via get_sessions
+                    const sessionCheck = await fetch('post.php?action=get_sessions&t=' + Date.now());
+                    const sData = await sessionCheck.json();
+                    const active = sData.sessions.some(s => s.id === currentSessionId);
+                    if (!active) { disconnect(); return; }
+                }
 
                 UI.speaking.classList.toggle('opacity-100', data.is_speaking);
                 UI.speaking.classList.toggle('opacity-0', !data.is_speaking);
@@ -317,13 +336,37 @@
                 }
                 setTimeout(pollLive, 300);
             } catch(e) {
-                // If the file is gone or we have a network error during live, consider it ended
-                disconnect();
+                retryCount++;
+                if (retryCount > 3) UI.retryToast.style.display = 'block';
+
+                // If the file is missing, check the central registry every 3 retries
+                if (retryCount % 3 === 0 || retryCount >= MAX_RETRIES) {
+                    try {
+                        const regRes = await fetch('post.php?action=get_sessions&t=' + Date.now());
+                        const regData = await regRes.json();
+                        if (!regData.sessions || !regData.sessions.some(s => s.id === currentSessionId)) {
+                            disconnect();
+                            return;
+                        }
+                    } catch(err) {
+                        if (retryCount >= MAX_RETRIES) { disconnect(); return; }
+                    }
+                }
+
+                if (retryCount >= MAX_RETRIES) {
+                    // Slow down polling if still failing but session exists in registry
+                    retryCount = MAX_RETRIES - 5;
+                    setTimeout(pollLive, 2000);
+                } else {
+                    setTimeout(pollLive, 500);
+                }
             }
         }
 
         function disconnect() {
+            if (!currentSessionId) return;
             currentSessionId = null;
+            UI.retryToast.style.display = 'none';
             UI.ended.classList.remove('hidden');
             if (rtc.pc) rtc.pc.close();
             rtc.audio.pause();
