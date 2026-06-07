@@ -173,9 +173,11 @@
                     <label class="text-[10px] font-bold text-gray-500 uppercase mb-2 block">Langue de traduction</label>
                     <select id="langSelect">
                         <option value="none">Français (Origine)</option>
-                        <option value="en">English (US)</option>
-                        <option value="es">Español</option>
-                        <option value="de">Deutsch</option>
+                        <option value="en-US">English (US)</option>
+                        <option value="es-ES">Español</option>
+                        <option value="de-DE">Deutsch</option>
+                        <option value="it-IT">Italiano</option>
+                        <option value="pt-PT">Português</option>
                     </select>
                 </div>
 
@@ -287,27 +289,47 @@
 
         // TTS Logic with debounce and error handling
         let ttsTimeout = null;
+        function getVoice(langCode) {
+            const voices = synth.getVoices();
+            if (!voices.length) return null;
+
+            // Normalize lang code (e.g. en-US -> en)
+            const shortLang = langCode.split('-')[0];
+
+            // 1. Try exact match + Premium/Google
+            let voice = voices.find(v => v.lang === langCode && (v.name.includes('Google') || v.name.includes('Premium')));
+            // 2. Try exact match
+            if (!voice) voice = voices.find(v => v.lang === langCode);
+            // 3. Try short lang match + Premium/Google
+            if (!voice) voice = voices.find(v => v.lang.startsWith(shortLang) && (v.name.includes('Google') || v.name.includes('Premium')));
+            // 4. Try short lang match
+            if (!voice) voice = voices.find(v => v.lang.startsWith(shortLang));
+            // 5. Fallback to first available voice or default
+            if (!voice) voice = voices.find(v => v.default) || voices[0];
+
+            return voice;
+        }
+
         function speak(text) {
             if (!ttsActive || !text) return;
 
-            // Clear any pending speak request
             if (ttsTimeout) clearTimeout(ttsTimeout);
 
             ttsTimeout = setTimeout(() => {
                 try {
-                    // Stop current speaking
                     synth.cancel();
 
-                    // Small delay after cancel to allow the engine to reset (crucial for Chrome)
                     setTimeout(() => {
+                        const targetLang = UI.lang.value === 'none' ? 'fr-FR' : UI.lang.value;
+                        const voice = getVoice(targetLang);
+
+                        if (!voice && synth.getVoices().length === 0) {
+                            logVoice("TTS Cancelled: No voices loaded yet");
+                            return;
+                        }
+
                         const utterance = new SpeechSynthesisUtterance(text);
-                        const target = UI.lang.value === 'none' ? 'fr-FR' : UI.lang.value;
-                        utterance.lang = target;
-
-                        const voices = synth.getVoices();
-                        const voice = voices.find(v => v.lang.startsWith(target) && (v.name.includes('Google') || v.name.includes('Premium')))
-                                      || voices.find(v => v.lang.startsWith(target));
-
+                        utterance.lang = targetLang;
                         if (voice) utterance.voice = voice;
                         utterance.rate = parseFloat(UI.rate.value);
 
@@ -319,7 +341,7 @@
                 } catch (err) {
                     logVoice("TTS Exception: " + err.message);
                 }
-            }, 100); // 100ms debounce
+            }, 100);
         }
 
         let lastTestTrigger = 0;
@@ -349,10 +371,14 @@
         };
 
         async function fastTranslate(text) {
-            const target = UI.lang.value;
+            let target = UI.lang.value;
             if (target === 'none' || !text) return text;
+
+            // Google Translate uses 'en', 'es', etc. for gtx endpoint
+            const shortTarget = target.split('-')[0];
+
             try {
-                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=fr&tl=${target}&dt=t&q=${encodeURIComponent(text)}`);
+                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=fr&tl=${shortTarget}&dt=t&q=${encodeURIComponent(text)}`);
                 const data = await res.json();
                 return data[0].map(x => x[0]).join('');
             } catch (e) { return text; }
