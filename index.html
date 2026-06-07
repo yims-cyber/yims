@@ -393,6 +393,7 @@
             recognition.continuous = true;
             recognition.interimResults = true;
 
+            // Optimization for rapid translation: process results more aggressively
             recognition.onresult = (event) => {
                 let interim = '';
                 let final = '';

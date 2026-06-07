@@ -192,6 +192,10 @@
             </div>
 
             <div class="space-y-6">
+                <div id="interpreterBadge" class="hidden items-center gap-2 p-2 bg-indigo-500 text-white rounded-lg text-[10px] font-bold uppercase animate-pulse">
+                    <i class="fas fa-language"></i> Mode Interprète Actif
+                </div>
+
                 <div>
                     <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Langue de l'auditeur</label>
                     <select id="langSelect">
@@ -335,6 +339,12 @@
         UI.close.onclick = UI.overlay.onclick = () => { UI.menu.classList.remove('open'); UI.overlay.classList.remove('show'); };
         UI.theme.onclick = () => document.documentElement.classList.toggle('dark');
 
+        UI.lang.onchange = () => {
+            const isInterp = UI.lang.value !== 'fr-FR';
+            document.getElementById('interpreterBadge').classList.toggle('hidden', !isInterp);
+            document.getElementById('interpreterBadge').classList.toggle('flex', isInterp);
+        };
+
         // Robust Voice Selection
         function getBestVoice(langCode) {
             const voices = synth.getVoices();
@@ -359,23 +369,34 @@
         function speak(text) {
             if (!text?.trim()) return;
 
-            // Ensure any previous speech is cut for real-time feel
             synth.cancel();
 
-            // Small async delay to ensure engine reset
             setTimeout(() => {
                 try {
                     const target = UI.lang.value;
                     const voice = getBestVoice(target);
-
                     const utterance = new SpeechSynthesisUtterance(text);
+
                     utterance.lang = target;
                     if (voice) utterance.voice = voice;
                     utterance.rate = parseFloat(UI.rate.value);
                     utterance.volume = 1;
 
-                    utterance.onstart = () => logVoice(`TTS Active | Lang: ${target} | Voice: ${voice?.name || 'Default'}`);
-                    utterance.onerror = (e) => logVoice(`TTS Fail: ${e.error} | Lang: ${target} | Voice: ${voice?.name || 'None'}`);
+                    utterance.onstart = () => {
+                        // Audio Ducking: Baisser la voix de l'orateur pendant la traduction
+                        rtcState.audio.volume = parseFloat(UI.liveVolume.value) * 0.2;
+                        logVoice(`TTS Active | Lang: ${target}`);
+                    };
+
+                    utterance.onend = () => {
+                        // Restaurer le volume original
+                        rtcState.audio.volume = parseFloat(UI.liveVolume.value);
+                    };
+
+                    utterance.onerror = (e) => {
+                        rtcState.audio.volume = parseFloat(UI.liveVolume.value);
+                        logVoice(`TTS Fail: ${e.error}`);
+                    };
 
                     synth.speak(utterance);
                 } catch (err) {
