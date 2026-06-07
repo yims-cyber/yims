@@ -227,26 +227,22 @@
         };
 
         // Broadcast current state to auditors via Server
+        let lastBroadcastText = "";
         async function broadcast(data) {
-            // Local fallback
-            localStorage.setItem('orateur_pro_broadcast', JSON.stringify({
-                ...data,
-                timestamp: Date.now()
-            }));
+            if (data.text === lastBroadcastText && data.type === 'interim') return;
+            lastBroadcastText = data.text;
 
-            // Server sync
             const formData = new URLSearchParams();
             formData.append('msg', data.text);
             formData.append('type', data.type);
             formData.append('post', 'yes');
 
-            try {
-                await fetch('post.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData
-                });
-            } catch (e) {}
+            // Fire and forget for low latency
+            fetch('post.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: formData
+            }).catch(() => {});
         }
 
         async function setupAudio() {
@@ -340,19 +336,26 @@
                 let interim = '';
                 let final = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) final = event.results[i][0].transcript;
-                    else interim += event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        final += event.results[i][0].transcript;
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
                 }
 
                 if (final) {
                     const phrase = final.trim();
-                    const item = { text: phrase, time: new Date().toLocaleTimeString('fr-FR') };
-                    state.history.unshift(item);
-                    localStorage.setItem('orateur_pro_history', JSON.stringify(state.history.slice(0,50)));
-                    elements.transcript.innerHTML = `<span class="text-white">${phrase}</span>`;
-                    renderHistory();
-                    broadcast({ type: 'final', text: phrase });
-                } else if (interim) {
+                    if (phrase) {
+                        const item = { text: phrase, time: new Date().toLocaleTimeString('fr-FR') };
+                        state.history.unshift(item);
+                        localStorage.setItem('orateur_pro_history', JSON.stringify(state.history.slice(0,50)));
+                        elements.transcript.innerHTML = `<span class="text-white">${phrase}</span>`;
+                        renderHistory();
+                        broadcast({ type: 'final', text: phrase });
+                    }
+                }
+
+                if (interim) {
                     elements.transcript.innerHTML = `<span class="text-neon-cyan/60 animate-pulse">${interim}</span>`;
                     broadcast({ type: 'interim', text: interim });
                 }
