@@ -161,7 +161,10 @@
         <header class="header-app">
             <button id="openMenu" class="btn-circle shadow-sm"><i class="fas fa-bars-staggered"></i></button>
             <div class="flex flex-col items-center">
-                <span class="font-black text-[12px] tracking-[0.15em] text-fb uppercase">Orateur Pro</span>
+                <div class="flex items-center gap-2">
+                    <span class="font-black text-[12px] tracking-[0.15em] text-fb uppercase">Orateur Pro</span>
+                    <span id="studioBadge" class="bg-fb/10 text-fb px-1.5 py-0.5 rounded text-[8px] font-black tracking-widest border border-fb/20 transition-all duration-500">STUDIO QUALITY</span>
+                </div>
                 <div id="speaking-indicator" class="flex items-center gap-1 text-fb font-bold text-[9px] uppercase opacity-0 transition-opacity">
                     <div class="w-1.5 h-1.5 bg-fb rounded-full animate-ping"></div> L'ORATEUR PARLE
                 </div>
@@ -367,21 +370,91 @@
             if (rtc.pc) rtc.pc.close();
             rtc.audio.pause();
             synth.cancel();
+            ttsQueue = [];
+            isSpeaking = false;
         }
+
+        let ttsQueue = [];
+        let isSpeaking = false;
 
         function speakIncremental(text, isFinal = false) {
             if (!UI.tts.checked || !text?.trim()) return;
+
             const newPart = text.substring(charIndex).trim();
-            if (newPart.length < 15 && !isFinal) return;
-            const utt = new SpeechSynthesisUtterance(newPart);
-            charIndex += newPart.length;
-            utt.lang = selectedLang;
+            // Regex to split while keeping the punctuation
+            const segments = newPart.split(/([.!?]+(?:\s|$))/g);
+
+            let currentPhrase = "";
+            let segmentsConsumed = 0;
+
+            for (let i = 0; i < segments.length; i += 2) {
+                const content = segments[i];
+                const punctuation = segments[i+1] || "";
+
+                if (punctuation || (isFinal && i === segments.length - 1)) {
+                    const toSpeak = (content + punctuation).trim();
+                    if (toSpeak.length > 2) {
+                        ttsQueue.push({ text: toSpeak, lang: selectedLang });
+                        currentPhrase += content + punctuation;
+                        segmentsConsumed = i + 2;
+                    }
+                }
+            }
+
+            if (segmentsConsumed > 0) {
+                // Approximate charIndex update to skip consumed sentences
+                charIndex += currentPhrase.length;
+                if (!isSpeaking) playNextInQueue();
+            } else if (isFinal && newPart.length > 0) {
+                ttsQueue.push({ text: newPart, lang: selectedLang });
+                charIndex = 0;
+                if (!isSpeaking) playNextInQueue();
+            }
+        }
+
+        function playNextInQueue() {
+            if (ttsQueue.length === 0) {
+                isSpeaking = false;
+                fadeAudio(rtc.audio, UI.vol.value);
+                document.getElementById('studioBadge')?.classList.remove('bg-fb', 'text-white', 'shadow-[0_0_10px_rgba(24,119,242,0.5)]');
+                return;
+            }
+
+            isSpeaking = true;
+            document.getElementById('studioBadge')?.classList.add('bg-fb', 'text-white', 'shadow-[0_0_10px_rgba(24,119,242,0.5)]');
+            const item = ttsQueue.shift();
+            const utt = new SpeechSynthesisUtterance(item.text);
+            utt.lang = item.lang;
+
             const voices = synth.getVoices();
-            utt.voice = voices.find(v => v.lang === utt.lang && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural'))) || voices.find(v => v.lang.startsWith(utt.lang.split('-')[0])) || voices[0];
-            utt.rate = parseFloat(UI.rate.value) + (isFinal ? 0 : 0.15);
-            utt.onstart = () => rtc.audio.volume = UI.vol.value * 0.15;
-            utt.onend = () => { if (!synth.speaking) rtc.audio.volume = UI.vol.value; };
+            // Prioritize Neural and Premium voices for "Human-like" experience
+            const preferred = voices.find(v => v.lang === utt.lang && (v.name.includes('Neural') || v.name.includes('Natural'))) ||
+                              voices.find(v => v.lang === utt.lang && (v.name.includes('Google') || v.name.includes('Premium'))) ||
+                              voices.find(v => v.lang.startsWith(utt.lang.split('-')[0])) || voices[0];
+
+            utt.voice = preferred;
+            utt.rate = parseFloat(UI.rate.value);
+            utt.pitch = 1.0;
+            utt.volume = 1.0;
+
+            utt.onstart = () => fadeAudio(rtc.audio, UI.vol.value * 0.1);
+            utt.onend = () => playNextInQueue();
+            utt.onerror = () => playNextInQueue();
+
             synth.speak(utt);
+        }
+
+        function fadeAudio(audioEl, targetVol) {
+            const step = 0.05;
+            const interval = 30;
+            const timer = setInterval(() => {
+                if (Math.abs(audioEl.volume - targetVol) < step) {
+                    audioEl.volume = targetVol;
+                    clearInterval(timer);
+                } else {
+                    audioEl.volume += (audioEl.volume < targetVol ? step : -step);
+                }
+            }, interval);
         }
 
         async function fastTranslate(text) {
