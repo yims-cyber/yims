@@ -221,6 +221,31 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Translation & TTS Control -->
+                <div class="glass rounded-2xl p-5 border-l-4 border-neon-cyan">
+                    <h3 class="text-[10px] font-bold text-white uppercase tracking-[0.2em] mb-4">Traduction & Synthèse</h3>
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <label class="text-[9px] text-gray-500 uppercase font-bold">Langue de l'auditeur</label>
+                            <select id="targetLang" class="w-full bg-obsidian-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-neon-cyan transition-colors">
+                                <option value="none">Pas de traduction</option>
+                                <option value="en">Anglais (US)</option>
+                                <option value="es">Espagnol</option>
+                                <option value="de">Allemand</option>
+                                <option value="it">Italien</option>
+                                <option value="ja">Japonais</option>
+                            </select>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-gray-400">Lecture Audio Directe</span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="ttsToggle" class="sr-only peer">
+                                <div class="w-9 h-5 bg-obsidian-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-neon-cyan"></div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Right Panel: Output -->
@@ -314,6 +339,8 @@
             vadStatus: document.getElementById('vadStatus'),
             interferenceLabel: document.getElementById('interferenceLabel'),
             interferenceMeter: document.getElementById('interferenceMeter'),
+            targetLang: document.getElementById('targetLang'),
+            ttsToggle: document.getElementById('ttsToggle'),
             permStatus: document.getElementById('permStatus'),
             toast: document.getElementById('toast'),
             toastMsg: document.getElementById('toastMsg')
@@ -471,26 +498,89 @@
 
             recognition.onresult = (event) => {
                 let interimTranscript = '';
+                let finalPhrase = '';
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
                     if (event.results[i].isFinal) {
-                        processFinalPhrase(event.results[i][0].transcript.trim());
+                        finalPhrase = event.results[i][0].transcript.trim();
                     } else {
                         interimTranscript += event.results[i][0].transcript;
                     }
                 }
-                if (interimTranscript) {
-                    elements.transcript.innerHTML = `<span class="text-neon-cyan/80 animate-pulse">${interimTranscript}</span>`;
+
+                if (finalPhrase) {
+                    processFinalPhrase(finalPhrase);
+                } else if (interimTranscript) {
+                    // Display interim results with a "streaming" effect
+                    const target = elements.targetLang.value;
+                    if (target !== 'none') {
+                        elements.transcript.innerHTML = `
+                            <div class="flex flex-col">
+                                <span class="text-neon-cyan/60 animate-pulse italic text-lg">En attente de traduction...</span>
+                                <span class="text-white/40 text-sm mt-2">${interimTranscript}...</span>
+                            </div>
+                        `;
+                    } else {
+                        elements.transcript.innerHTML = `<span class="text-neon-cyan/80 animate-pulse">${interimTranscript}...</span>`;
+                    }
                 }
             };
         }
 
-        function processFinalPhrase(phrase) {
+        function speakText(text, lang) {
+            if (!window.speechSynthesis) return;
+
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang;
+
+            // Find a voice for the target language
+            const voices = window.speechSynthesis.getVoices();
+            const voice = voices.find(v => v.lang.startsWith(lang));
+            if (voice) utterance.voice = voice;
+
+            utterance.rate = 1.1; // Slightly faster for real-time feel
+            utterance.pitch = 1.0;
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        async function translateText(text, target) {
+            if (target === 'none') return text;
+
+            // Note: In a production environment, you would use a real API key for Google Translate or DeepL.
+            // Here we use a public free-tier endpoint for demonstration.
+            try {
+                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=fr&tl=${target}&dt=t&q=${encodeURIComponent(text)}`);
+                const data = await res.json();
+                return data[0][0][0];
+            } catch (e) {
+                console.error("Translation Error:", e);
+                return text;
+            }
+        }
+
+        async function processFinalPhrase(phrase) {
             if (!phrase) return;
             phrase = phrase.charAt(0).toUpperCase() + phrase.slice(1);
 
+            const target = elements.targetLang.value;
+            let displayPhrase = phrase;
+            let originalPhrase = phrase;
+
+            if (target !== 'none') {
+                const translated = await translateText(phrase, target);
+                displayPhrase = `<span class="text-neon-cyan">${translated}</span> <br> <span class="text-xs text-gray-500 italic">${phrase}</span>`;
+
+                if (elements.ttsToggle.checked) {
+                    speakText(translated, target);
+                }
+            }
+
             const item = {
                 id: Date.now(),
-                text: phrase,
+                text: originalPhrase,
                 time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
             };
 
@@ -498,14 +588,14 @@
             state.sentCount++;
             localStorage.setItem('obsidian_vox_history', JSON.stringify(state.history.slice(0, 50)));
 
-            elements.transcript.innerHTML = `<span class="text-white">${phrase}</span>`;
+            elements.transcript.innerHTML = `<span class="text-white">${displayPhrase}</span>`;
             renderHistory();
 
             // Sync to backend
             fetch('post.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `msg=${encodeURIComponent(phrase)}&post=yes`
+                body: `msg=${encodeURIComponent(originalPhrase)}&post=yes`
             }).catch(err => console.warn("Échec de la synchronisation :", err));
         }
 
@@ -521,7 +611,11 @@
                 elements.statusDot.className = "w-2 h-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)] rounded-full";
                 elements.statusText.innerText = "// CONNECTÉ";
 
-                if (!state.audio.context) await setupAudioEngine();
+                if (!state.audio.context) {
+                    await setupAudioEngine();
+                } else {
+                    processAudio(); // Restart the visualizer loop
+                }
                 if (recognition) recognition.start();
                 elements.transcript.innerHTML = '<span class="text-neon-cyan/40 italic">Écoute en cours...</span>';
                 showToast("Liaison neurale établie");
