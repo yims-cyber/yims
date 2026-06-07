@@ -212,10 +212,10 @@
         let charIndex = 0;
         let selectedLang = "fr-FR";
         let retryCount = 0;
-        const MAX_RETRIES = 15; // Robustness: try for ~5 seconds before giving up
+        const MAX_RETRIES = 15;
         const auditorId = 'aud_' + Math.random().toString(36).substr(2, 6);
         const synth = window.speechSynthesis;
-        const rtc = { pc: null, audio: new Audio(), candidatesAdded: new Set() };
+        const rtc = { pc: null, dc: null, audio: new Audio(), candidatesAdded: new Set() };
 
         // Lang selection logic
         UI.langBar.querySelectorAll('.lang-chip').forEach(chip => {
@@ -276,12 +276,10 @@
         setInterval(fetchSessions, 3000);
 
         window.joinSession = (id) => {
-            // Fix history warning: only push state after user interaction
             if (!currentSessionId) {
                 history.pushState(null, null, location.href);
                 window.onpopstate = () => history.go(1);
             }
-
             currentSessionId = id;
             retryCount = 0;
             UI.discovery.style.display = 'none';
@@ -296,82 +294,69 @@
             if (!currentSessionId) return;
             try {
                 const res = await fetch(`live_${currentSessionId}.json?t=` + Date.now(), { cache: 'no-store' });
-
-                if (!res.ok) {
-                    throw new Error("Network error");
-                }
+                if (!res.ok) throw new Error("Network error");
 
                 const data = await res.json();
-                retryCount = 0; // Success, reset retries
+                retryCount = 0;
                 UI.retryToast.style.display = 'none';
 
                 if (!data.is_live) {
-                    // Confirm session is really dead via get_sessions
                     const sessionCheck = await fetch('post.php?action=get_sessions&t=' + Date.now());
                     const sData = await sessionCheck.json();
-                    const active = sData.sessions.some(s => s.id === currentSessionId);
-                    if (!active) { disconnect(); return; }
+                    if (!sData.sessions || !sData.sessions.some(s => s.id === currentSessionId)) { disconnect(); return; }
                 }
 
-                UI.speaking.classList.toggle('opacity-100', data.is_speaking);
-                UI.speaking.classList.toggle('opacity-0', !data.is_speaking);
-
                 if (data.timestamp > lastTS) {
-                    lastTS = data.timestamp;
-                    const translated = await fastTranslate(data.text);
-                    if (data.type === 'interim') {
-                        UI.interim.classList.remove('hidden');
-                        UI.interim.textContent = translated;
-                        speakIncremental(translated);
-                    } else if (data.text) {
-                        UI.interim.classList.add('hidden');
-                        const card = document.createElement('div');
-                        card.className = 'phrase-card';
-
-                        const origDiv = document.createElement('div');
-                        origDiv.className = 'text-orig' + (UI.orig.checked ? ' show' : '');
-                        origDiv.textContent = data.text;
-
-                        const mainDiv = document.createElement('div');
-                        mainDiv.className = 'text-main';
-                        mainDiv.textContent = translated;
-
-                        card.appendChild(origDiv);
-                        card.appendChild(mainDiv);
-                        UI.content.appendChild(card);
-
-                        speakIncremental(translated, true);
-                        charIndex = 0;
-                    }
-                    UI.scroll.scrollTop = UI.scroll.scrollHeight;
+                    processIncomingText(data);
                 }
                 setTimeout(pollLive, 300);
             } catch(e) {
                 retryCount++;
                 if (retryCount > 3) UI.retryToast.style.display = 'block';
-
-                // If the file is missing, check the central registry every 3 retries
                 if (retryCount % 3 === 0 || retryCount >= MAX_RETRIES) {
                     try {
                         const regRes = await fetch('post.php?action=get_sessions&t=' + Date.now());
                         const regData = await regRes.json();
-                        if (!regData.sessions || !regData.sessions.some(s => s.id === currentSessionId)) {
-                            disconnect();
-                            return;
-                        }
+                        if (!regData.sessions || !regData.sessions.some(s => s.id === currentSessionId)) { disconnect(); return; }
                     } catch(err) {
                         if (retryCount >= MAX_RETRIES) { disconnect(); return; }
                     }
                 }
-
-                if (retryCount >= MAX_RETRIES) {
-                    // Slow down polling if still failing but session exists in registry
-                    retryCount = MAX_RETRIES - 5;
-                    setTimeout(pollLive, 2000);
-                } else {
-                    setTimeout(pollLive, 500);
-                }
+                setTimeout(pollLive, retryCount >= MAX_RETRIES ? 2000 : 500);
             }
+        }
+
+        async function processIncomingText(data) {
+            lastTS = data.timestamp;
+            UI.speaking.classList.toggle('opacity-100', data.is_speaking);
+            UI.speaking.classList.toggle('opacity-0', !data.is_speaking);
+
+            const translated = await fastTranslate(data.text);
+            if (data.type === 'interim') {
+                UI.interim.classList.remove('hidden');
+                UI.interim.textContent = translated;
+                speakIncremental(translated);
+            } else if (data.text) {
+                UI.interim.classList.add('hidden');
+                const card = document.createElement('div');
+                card.className = 'phrase-card';
+
+                const origDiv = document.createElement('div');
+                origDiv.className = 'text-orig' + (UI.orig.checked ? ' show' : '');
+                origDiv.textContent = data.text;
+
+                const mainDiv = document.createElement('div');
+                mainDiv.className = 'text-main';
+                mainDiv.textContent = translated;
+
+                card.appendChild(origDiv);
+                card.appendChild(mainDiv);
+                UI.content.appendChild(card);
+
+                speakIncremental(translated, true);
+                charIndex = 0;
+            }
+            UI.scroll.scrollTop = UI.scroll.scrollHeight;
         }
 
         function disconnect() {
@@ -386,17 +371,13 @@
 
         function speakIncremental(text, isFinal = false) {
             if (!UI.tts.checked || !text?.trim()) return;
-
             const newPart = text.substring(charIndex).trim();
             if (newPart.length < 15 && !isFinal) return;
-
             const utt = new SpeechSynthesisUtterance(newPart);
             charIndex += newPart.length;
-
             utt.lang = selectedLang;
             const voices = synth.getVoices();
             utt.voice = voices.find(v => v.lang === utt.lang && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural'))) || voices.find(v => v.lang.startsWith(utt.lang.split('-')[0])) || voices[0];
-
             utt.rate = parseFloat(UI.rate.value) + (isFinal ? 0 : 0.15);
             utt.onstart = () => rtc.audio.volume = UI.vol.value * 0.15;
             utt.onend = () => { if (!synth.speaking) rtc.audio.volume = UI.vol.value; };
@@ -416,6 +397,14 @@
         async function initRTCReceiver() {
             if (rtc.pc) rtc.pc.close();
             rtc.pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+
+            // Transcription Data Channel (P2P Instant Text)
+            rtc.dc = rtc.pc.createDataChannel("transcription", { negotiated: true, id: 0 });
+            rtc.dc.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.timestamp > lastTS) processIncomingText(data);
+            };
+
             rtc.pc.ontrack = (e) => { rtc.audio.srcObject = e.streams[0]; rtc.audio.play(); };
             rtc.pc.onicecandidate = (e) => { if (e.candidate) fetch(`signaling.php?action=push&role=auditor&session_id=${currentSessionId}`, { method: 'POST', body: JSON.stringify({ candidate: e.candidate, auditor_id: auditorId }) }); };
             const rtcPoll = setInterval(async () => {
@@ -444,7 +433,6 @@
         document.getElementById('closeMenu').onclick = UI.overlay.onclick = () => { UI.menu.classList.remove('open'); UI.overlay.classList.remove('show'); };
         document.getElementById('themeToggle').onclick = () => document.documentElement.classList.toggle('dark');
 
-        // PWA Installation
         let deferredPrompt;
         const installBtn = document.getElementById('installBtn');
         window.addEventListener('beforeinstallprompt', (e) => {

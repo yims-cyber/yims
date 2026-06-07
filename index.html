@@ -215,6 +215,7 @@
             sessionId: 'live_' + Math.random().toString(36).substr(2, 6),
             webrtc: {
                 pc: null,
+                dc: null,
                 pollInterval: null,
                 candidatesAdded: new Set()
             }
@@ -241,12 +242,25 @@
             permStatus: document.getElementById('permStatus')
         };
 
-        // Broadcast current state to auditors via Server
+        // Broadcast current state to auditors via Server & WebRTC DataChannel
         let lastBroadcastText = "";
         async function broadcast(data, action = 'broadcast') {
             if (data && data.text === lastBroadcastText && data.type === 'interim') return;
             if (data) lastBroadcastText = data.text;
 
+            // 1. Instant P2P Broadcast via DataChannel
+            if (state.webrtc.dc && state.webrtc.dc.readyState === 'open' && data) {
+                try {
+                    state.webrtc.dc.send(JSON.stringify({
+                        type: data.type,
+                        text: data.text,
+                        timestamp: Date.now(),
+                        is_speaking: state.isSpeaking
+                    }));
+                } catch (e) {}
+            }
+
+            // 2. Server Fallback/Polling Update
             const formData = new URLSearchParams();
             formData.append('action', action);
             formData.append('session_id', state.sessionId);
@@ -294,6 +308,9 @@
             state.webrtc.pc = new RTCPeerConnection({
                 iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
             });
+
+            // Create Data Channel for Instant Transcription
+            state.webrtc.dc = state.webrtc.pc.createDataChannel("transcription", { negotiated: true, id: 0 });
 
             state.audio.stream.getTracks().forEach(track => {
                 state.webrtc.pc.addTrack(track, state.audio.stream);
