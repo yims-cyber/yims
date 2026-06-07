@@ -66,6 +66,17 @@ if ($action === 'start_session' && !empty($sessionId)) {
     echo json_encode(['status' => 'broadcasted']);
 
 } elseif ($action === 'stop_session' && !empty($sessionId)) {
+    // Notify auditors that session is ending
+    $liveFile = "live_{$sessionId}.json";
+    if (file_exists($liveFile)) {
+        $endData = [
+            'is_live' => false,
+            'timestamp' => round(microtime(true) * 1000)
+        ];
+        atomic_write($liveFile, $endData);
+        usleep(500000); // Give 500ms for auditors to see the status before deletion
+    }
+
     $sessions = atomic_read($sessionFile) ?? [];
     if (isset($sessions[$sessionId])) {
         unset($sessions[$sessionId]);
@@ -90,13 +101,11 @@ if ($action === 'start_session' && !empty($sessionId)) {
     echo json_encode(['status' => 'stopped']);
 
 } elseif ($action === 'hard_cleanup') {
-    // Delete registry
-    if (file_exists($sessionFile)) unlink($sessionFile);
-    if (file_exists($logsFile)) unlink($logsFile);
-    if (file_exists('voix.log')) unlink('voix.log');
-    if (file_exists('webrtc_signaling.json')) unlink('webrtc_signaling.json');
+    // Delete registries and logs
+    $globals = [$sessionFile, $logsFile, 'voix.log', 'webrtc_signaling.json', 'broadcast.json', 'sessions.json'];
+    foreach($globals as $g) { if (file_exists($g)) unlink($g); }
 
-    // Delete all live and signaling files
+    // Delete all session-specific files
     foreach (glob("live_*.json") as $f) unlink($f);
     foreach (glob("signaling_*.json") as $f) unlink($f);
 

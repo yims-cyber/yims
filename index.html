@@ -506,8 +506,9 @@
         elements.clearHistory.onclick = () => { state.history = []; localStorage.removeItem('orateur_pro_ultra_history'); renderHistory(); };
 
         document.getElementById('hardCleanupBtn').onclick = async () => {
-            if (confirm("Reset complet ?")) {
+            if (confirm("Reset complet (Serveur + Local) ?")) {
                 await fetch('post.php?action=hard_cleanup', { method: 'POST' });
+                localStorage.clear();
                 location.reload();
             }
         };
