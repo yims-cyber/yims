@@ -206,7 +206,8 @@
             },
             webrtc: {
                 pc: null,
-                pollInterval: null
+                pollInterval: null,
+                candidatesAdded: new Set()
             }
         };
 
@@ -308,9 +309,13 @@
                         await state.webrtc.pc.setRemoteDescription(new RTCSessionDescription(data.answer));
                     }
 
-                    if (data.auditor_candidates) {
+                    if (data.auditor_candidates && state.webrtc.pc.remoteDescription) {
                         data.auditor_candidates.forEach(candidate => {
-                            state.webrtc.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
+                            const candStr = JSON.stringify(candidate);
+                            if (candidate && !state.webrtc.candidatesAdded.has(candStr)) {
+                                state.webrtc.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
+                                state.webrtc.candidatesAdded.add(candStr);
+                            }
                         });
                     }
                 } catch (e) {}

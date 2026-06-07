@@ -22,11 +22,19 @@
     </script>
     <style>
         /* Resolving CSS conflicts and @apply errors */
-        * { font-size: 13px !important; transition: all 0.25s ease; }
+        * { transition: all 0.25s ease; }
 
-        /* Font family priority to avoid breaking icons */
-        html, body, select, input, button, p, div, span, h1 { font-family: 'Inter', sans-serif; }
-        .fas, .fab, .far { font-family: "Font Awesome 6 Free" !important; font-size: inherit !important; }
+        /* Apply 13px to text-bearing elements without breaking icons */
+        html, body, select, input, button, p, div, span, h1 {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px !important;
+        }
+
+        /* Restore icon sizes */
+        .fas, .fab, .far {
+            font-family: "Font Awesome 6 Free" !important;
+            font-size: inherit !important;
+        }
 
         body {
             margin: 0; padding: 0; overflow: hidden;
@@ -309,7 +317,8 @@
             pc: null,
             stream: null,
             audio: new Audio(),
-            pollInterval: null
+            pollInterval: null,
+            candidatesAdded: new Set()
         };
 
         function logVoice(msg) {
@@ -427,9 +436,13 @@
                         });
                     }
 
-                    if (data.orator_candidates) {
+                    if (data.orator_candidates && rtcState.pc.remoteDescription) {
                         data.orator_candidates.forEach(candidate => {
-                            rtcState.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
+                            const candStr = JSON.stringify(candidate);
+                            if (candidate && !rtcState.candidatesAdded.has(candStr)) {
+                                rtcState.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
+                                rtcState.candidatesAdded.add(candStr);
+                            }
                         });
                     }
                 } catch (e) {}
