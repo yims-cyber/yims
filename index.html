@@ -226,12 +226,27 @@
             permStatus: document.getElementById('permStatus')
         };
 
-        // Broadcast current state to auditors
-        function broadcast(data) {
+        // Broadcast current state to auditors via Server
+        async function broadcast(data) {
+            // Local fallback
             localStorage.setItem('orateur_pro_broadcast', JSON.stringify({
                 ...data,
                 timestamp: Date.now()
             }));
+
+            // Server sync
+            const formData = new URLSearchParams();
+            formData.append('msg', data.text);
+            formData.append('type', data.type);
+            formData.append('post', 'yes');
+
+            try {
+                await fetch('post.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+            } catch (e) {}
         }
 
         async function setupAudio() {
