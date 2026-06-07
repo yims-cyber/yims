@@ -203,6 +203,10 @@
                 analyser: null,
                 stream: null,
                 metrics: { db: -100, noiseFloor: -100, snr: 0 }
+            },
+            webrtc: {
+                pc: null,
+                pollInterval: null
             }
         };
 
@@ -254,11 +258,63 @@
                 state.audio.analyser.fftSize = 256;
                 source.connect(state.audio.analyser);
 
+                initWebRTC();
                 processAudio();
             } catch (err) {
                 console.error(err);
                 alert("Accès micro refusé");
             }
+        }
+
+        async function initWebRTC() {
+            if (state.webrtc.pc) state.webrtc.pc.close();
+
+            // Clear previous signaling
+            await fetch('signaling.php?action=clear', { method: 'POST' });
+
+            state.webrtc.pc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+
+            state.audio.stream.getTracks().forEach(track => {
+                state.webrtc.pc.addTrack(track, state.audio.stream);
+            });
+
+            state.webrtc.pc.onicecandidate = ({candidate}) => {
+                if (candidate) {
+                    fetch('signaling.php?action=push&role=orator', {
+                        method: 'POST',
+                        body: JSON.stringify({ candidate })
+                    });
+                }
+            };
+
+            const offer = await state.webrtc.pc.createOffer();
+            await state.webrtc.pc.setLocalDescription(offer);
+
+            await fetch('signaling.php?action=push&role=orator', {
+                method: 'POST',
+                body: JSON.stringify({ offer })
+            });
+
+            // Poll for answer
+            if (state.webrtc.pollInterval) clearInterval(state.webrtc.pollInterval);
+            state.webrtc.pollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch('signaling.php');
+                    const data = await res.json();
+
+                    if (data.answer && state.webrtc.pc.signalingState === 'have-local-offer') {
+                        await state.webrtc.pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+                    }
+
+                    if (data.auditor_candidates) {
+                        data.auditor_candidates.forEach(candidate => {
+                            state.webrtc.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
+                        });
+                    }
+                } catch (e) {}
+            }, 2000);
         }
 
         function processAudio() {

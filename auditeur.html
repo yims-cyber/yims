@@ -229,6 +229,24 @@
                 </div>
             </div>
 
+            <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
+                <div class="flex items-center justify-between p-4 bg-fb/5 rounded-xl border border-fb/10">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-fb">Voix Orateur</span>
+                        <span class="text-[9px] text-fb/60">Audio direct de l'orateur</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggleLiveVoice" class="sr-only peer" checked>
+                        <div class="w-10 h-5 bg-gray-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-fb"></div>
+                    </label>
+                </div>
+
+                <div class="px-2">
+                    <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Volume Direct</label>
+                    <input type="range" id="liveVolume" min="0" max="1" step="0.1" value="0.8" class="w-full">
+                </div>
+            </div>
+
             <div class="mt-auto text-[9px] text-gray-400 text-center uppercase tracking-widest font-bold">
                 Orateur Pro v5.0 // Stable Engine
             </div>
@@ -279,11 +297,20 @@
             rateLabel: document.getElementById('rateLabel'),
             toggle: document.getElementById('toggleOriginal'),
             theme: document.getElementById('themeToggle'),
-            test: document.getElementById('testAudioBtn')
+            test: document.getElementById('testAudioBtn'),
+            liveVoice: document.getElementById('toggleLiveVoice'),
+            liveVolume: document.getElementById('liveVolume')
         };
 
         let lastTS = 0;
         const synth = window.speechSynthesis;
+
+        const rtcState = {
+            pc: null,
+            stream: null,
+            audio: new Audio(),
+            pollInterval: null
+        };
 
         function logVoice(msg) {
             console.log(msg);
@@ -352,9 +379,70 @@
         function forceUnlock() {
             const unlock = new SpeechSynthesisUtterance("");
             synth.speak(unlock);
+
+            // Audio context unlock
+            rtcState.audio.play().catch(() => {});
+
             logVoice("Speech engine unlocked");
+            initWebRTCReceiver();
         }
         window.addEventListener('click', forceUnlock, { once: true });
+
+        async function initWebRTCReceiver() {
+            if (rtcState.pc) rtcState.pc.close();
+
+            rtcState.pc = new RTCPeerConnection({
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+            });
+
+            rtcState.pc.ontrack = (event) => {
+                logVoice("WebRTC Track received");
+                rtcState.audio.srcObject = event.streams[0];
+                rtcState.audio.play();
+            };
+
+            rtcState.pc.onicecandidate = ({candidate}) => {
+                if (candidate) {
+                    fetch('signaling.php?action=push&role=auditor', {
+                        method: 'POST',
+                        body: JSON.stringify({ candidate })
+                    });
+                }
+            };
+
+            // Signaling poll
+            if (rtcState.pollInterval) clearInterval(rtcState.pollInterval);
+            rtcState.pollInterval = setInterval(async () => {
+                try {
+                    const res = await fetch('signaling.php');
+                    const data = await res.json();
+
+                    if (data.offer && rtcState.pc.signalingState === 'stable') {
+                        await rtcState.pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+                        const answer = await rtcState.pc.createAnswer();
+                        await rtcState.pc.setLocalDescription(answer);
+                        fetch('signaling.php?action=push&role=auditor', {
+                            method: 'POST',
+                            body: JSON.stringify({ answer })
+                        });
+                    }
+
+                    if (data.orator_candidates) {
+                        data.orator_candidates.forEach(candidate => {
+                            rtcState.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
+                        });
+                    }
+                } catch (e) {}
+            }, 3000);
+        }
+
+        UI.liveVolume.oninput = () => {
+            rtcState.audio.volume = parseFloat(UI.liveVolume.value);
+        };
+
+        UI.liveVoice.onchange = () => {
+            rtcState.audio.muted = !UI.liveVoice.checked;
+        };
 
         UI.test.onclick = () => {
             logVoice("User test triggered");
