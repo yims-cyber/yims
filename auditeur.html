@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orateur Pro - Mode Auditeur</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: { 900: '#050506', 800: '#0d0d0f', 700: '#1a1a1e' },
+                        neon: { cyan: '#00f2ff', purple: '#bc13fe' }
+                    },
+                    fontFamily: { 'display': ['Orbitron', 'sans-serif'], 'sans': ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-size: 13px !important; }
+        h1, .font-display { font-size: 1.2rem !important; }
+        body {
+            background-color: #050506;
+            background-image: radial-gradient(at 0% 0%, rgba(188, 19, 254, 0.1) 0px, transparent 50%);
+            color: #e2e8f0;
+        }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .neon-border-purple { border: 1px solid rgba(188, 19, 254, 0.3); }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(188, 19, 254, 0.3); border-radius: 10px; }
+    </style>
+</head>
+<body class="p-4 flex flex-col gap-4 lg:h-screen lg:overflow-hidden">
+    <!-- Header -->
+    <header class="flex flex-col sm:flex-row justify-between items-center gap-4 lg:h-12 mb-2 lg:mb-0">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-obsidian-800 rounded-lg flex items-center justify-center neon-border-purple">
+                <i class="fas fa-headphones text-neon-purple text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-display font-bold tracking-widest text-white uppercase">Auditeur <span class="text-neon-purple">Live</span></h1>
+                <span class="text-[10px] uppercase font-bold text-neon-purple animate-pulse tracking-tighter">// LIAISON SYNCHRONISÉE</span>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="glass px-3 py-1.5 rounded-md flex items-center gap-2 border-l-2 border-neon-cyan">
+                <i class="fas fa-tower-broadcast text-neon-cyan text-[10px]"></i>
+                <span id="syncStatus" class="font-mono font-bold text-gray-300">STREAMING</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex flex-col lg:grid lg:grid-cols-12 gap-4 flex-1 min-h-0">
+        <!-- Main Streaming View -->
+        <div class="lg:col-span-8 flex flex-col gap-4">
+            <div class="glass rounded-xl p-8 flex flex-col justify-center relative flex-1">
+                <div class="absolute top-4 left-6 flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-neon-purple animate-pulse"></div>
+                    <span class="text-[9px] font-bold text-neon-purple uppercase tracking-widest">Réception Vocale</span>
+                </div>
+                <div id="translatedTranscript" class="text-3xl font-light leading-relaxed text-white">
+                    <span class="text-gray-700 italic">En attente du signal de l'orateur...</span>
+                </div>
+                <div id="originalTranscript" class="mt-4 text-sm text-gray-500 italic hidden">
+                    <!-- Original text here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Auditor Controls -->
+        <div class="lg:col-span-4 space-y-4">
+            <div class="glass rounded-xl p-6 space-y-6 neon-border-purple">
+                <h2 class="text-[10px] font-bold text-neon-purple uppercase tracking-widest border-b border-white/5 pb-2">Paramètres d'Audition</h2>
+
+                <!-- Language Selector -->
+                <div class="space-y-2">
+                    <label class="text-[9px] text-gray-500 uppercase font-bold">Traduire vers</label>
+                    <select id="targetLang" class="w-full bg-obsidian-900 border border-white/10 rounded-lg p-2 text-xs">
+                        <option value="none">Original (Français)</option>
+                        <option value="en">Anglais</option>
+                        <option value="es">Espagnol</option>
+                        <option value="de">Allemand</option>
+                        <option value="it">Italien</option>
+                    </select>
+                </div>
+
+                <!-- Rate / Speed -->
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <label class="text-[9px] text-gray-500 uppercase font-bold">Vitesse de lecture</label>
+                        <span id="rateVal" class="text-[10px] text-neon-purple">1.0x</span>
+                    </div>
+                    <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1" class="w-full accent-neon-purple">
+                </div>
+
+                <!-- Volume -->
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <label class="text-[9px] text-gray-500 uppercase font-bold">Volume TTS</label>
+                        <span id="volVal" class="text-[10px] text-neon-purple">80%</span>
+                    </div>
+                    <input type="range" id="volume" min="0" max="1" step="0.1" value="0.8" class="w-full accent-neon-purple">
+                </div>
+
+                <!-- Toggle Original -->
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] text-gray-300">Afficher texte original</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="showOriginal" class="sr-only peer">
+                        <div class="w-8 h-4 bg-obsidian-700 rounded-full peer peer-checked:bg-neon-purple after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:after:translate-x-4"></div>
+                    </label>
+                </div>
+            </div>
+
+            <div class="glass rounded-xl p-4 text-center">
+                <p class="text-[10px] text-gray-500 italic">La lecture vocale s'active automatiquement dès réception des données traduites.</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="h-8 border-t border-white/5 flex justify-between items-center text-[10px] text-gray-600 uppercase font-bold tracking-widest">
+        <span>Canal d'Audition Sécurisé</span>
+        <span class="text-neon-purple">Buffer: Actif</span>
+    </footer>
+
+    <script>
+        const elements = {
+            translated: document.getElementById('translatedTranscript'),
+            original: document.getElementById('originalTranscript'),
+            targetLang: document.getElementById('targetLang'),
+            rate: document.getElementById('rate'),
+            volume: document.getElementById('volume'),
+            rateVal: document.getElementById('rateVal'),
+            volVal: document.getElementById('volVal'),
+            showOriginal: document.getElementById('showOriginal')
+        };
+
+        // TTS setup
+        const synth = window.speechSynthesis;
+
+        async function translate(text, target) {
+            if (target === 'none') return text;
+            try {
+                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=fr&tl=${target}&dt=t&q=${encodeURIComponent(text)}`);
+                const data = await res.json();
+                return data[0][0][0];
+            } catch (e) { return text; }
+        }
+
+        function speak(text, lang) {
+            synth.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = lang === 'none' ? 'fr-FR' : lang;
+            utterance.rate = elements.rate.value;
+            utterance.volume = elements.volume.value;
+
+            // Find specific voice
+            const voices = synth.getVoices();
+            const voice = voices.find(v => v.lang.startsWith(utterance.lang));
+            if (voice) utterance.voice = voice;
+
+            synth.speak(utterance);
+        }
+
+        // Listen to Speaker Broadcasts
+        window.addEventListener('storage', async (e) => {
+            if (e.key === 'orateur_pro_broadcast') {
+                const data = JSON.parse(e.newValue);
+                const target = elements.targetLang.value;
+
+                if (data.type === 'interim') {
+                    elements.translated.innerHTML = `<span class="text-neon-purple/40 italic">${data.text}...</span>`;
+                } else if (data.type === 'final') {
+                    const result = await translate(data.text, target);
+                    elements.translated.innerHTML = `<span class="text-white">${result}</span>`;
+                    elements.original.innerText = data.text;
+                    speak(result, target);
+                }
+            }
+        });
+
+        // UI Listeners
+        elements.rate.oninput = () => elements.rateVal.innerText = elements.rate.value + 'x';
+        elements.volume.oninput = () => elements.volVal.innerText = (elements.volume.value * 100).toFixed(0) + '%';
+        elements.showOriginal.onchange = () => {
+            elements.original.classList.toggle('hidden', !elements.showOriginal.checked);
+        };
+
+        // Load history on start
+        const hist = JSON.parse(localStorage.getItem('orateur_pro_history') || '[]');
+        if (hist.length > 0) {
+            elements.translated.innerText = "Prêt pour le streaming...";
+        }
+    </script>
+</body>
+</html>
