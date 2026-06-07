@@ -28,7 +28,8 @@ if (isset($_POST['post']) && $_POST['post'] == 'yes') {
     file_put_contents($file, json_encode($data));
     echo json_encode(['status' => 'success']);
 } else {
-    // Return current state for polling
+    // Add server time to handle clock drift between devices
+    $data['server_time'] = round(microtime(true) * 1000);
     echo json_encode($data);
 }
 ?>

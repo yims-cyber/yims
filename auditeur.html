@@ -280,28 +280,53 @@
 
         function getBestVoice(lang) {
             const voices = synth.getVoices();
-            return voices.find(v => v.lang === lang && (v.name.includes('Google') || v.name.includes('Premium'))) || voices.find(v => v.lang.startsWith(lang.split('-')[0])) || voices[0];
+            // Intelligent voice matching: Prioritize high fidelity voices (Google/Premium/Natural)
+            return voices.find(v => v.lang === lang && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural')))
+                || voices.find(v => v.lang.startsWith(lang.split('-')[0]) && (v.name.includes('Google') || v.name.includes('Premium')))
+                || voices.find(v => v.lang.startsWith(lang.split('-')[0]))
+                || voices[0];
         }
 
+        let currentUtterance = null;
         function speak(text, isInterim = false) {
             if (!UI.ttsToggle.checked || !text?.trim()) return;
             if (text === lastSpeakText) return;
             lastSpeakText = text;
 
+            // Prevent interim interruptions if a final phrase is already being spoken
+            if (isInterim && synth.speaking) return;
+
             synth.cancel();
+
             setTimeout(() => {
-                const utterance = new SpeechSynthesisUtterance(text);
-                const target = UI.lang.value;
-                utterance.lang = target;
-                utterance.voice = getBestVoice(target);
-                utterance.rate = isInterim ? 1.3 : 1.1;
+                try {
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    const target = UI.lang.value;
+                    utterance.lang = target;
+                    utterance.voice = getBestVoice(target);
+                    utterance.rate = isInterim ? 1.3 : 1.1;
 
-                utterance.onstart = () => rtcState.audio.volume = UI.vol.value * 0.15;
-                utterance.onend = () => rtcState.audio.volume = UI.vol.value;
-                utterance.onerror = () => rtcState.audio.volume = UI.vol.value;
+                    utterance.onstart = () => {
+                        currentUtterance = utterance;
+                        rtcState.audio.volume = UI.vol.value * 0.15;
+                        logVoice(`Synthèse: ${target} | ${utterance.voice?.name}`);
+                    };
+                    utterance.onend = () => {
+                        if (currentUtterance === utterance) {
+                            rtcState.audio.volume = UI.vol.value;
+                            currentUtterance = null;
+                        }
+                    };
+                    utterance.onerror = () => {
+                        rtcState.audio.volume = UI.vol.value;
+                        currentUtterance = null;
+                    };
 
-                synth.speak(utterance);
-            }, 30);
+                    synth.speak(utterance);
+                } catch(e) {
+                    rtcState.audio.volume = UI.vol.value;
+                }
+            }, 50);
         }
 
         async function fastTranslate(text) {
@@ -319,8 +344,9 @@
                 const res = await fetch('post.php?t=' + Date.now());
                 const data = await res.json();
 
-                const now = Date.now();
-                const isRecentlyActive = (now - data.timestamp) < 10000;
+                // Use server time to calculate activity to bypass local clock drift
+                const timeDiff = data.server_time - data.timestamp;
+                const isRecentlyActive = timeDiff < 10000; // Signal within last 10s
                 const liveActive = data.is_live && isRecentlyActive;
 
                 UI.offline.classList.toggle('hidden', liveActive);
