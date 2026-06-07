@@ -234,21 +234,29 @@
         // Broadcast current state to auditors via Server
         let lastBroadcastText = "";
         async function broadcast(data) {
-            if (data.text === lastBroadcastText && data.type === 'interim') return;
-            lastBroadcastText = data.text;
+            if (data && data.text === lastBroadcastText && data.type === 'interim') return;
+            if (data) lastBroadcastText = data.text;
 
             const formData = new URLSearchParams();
-            formData.append('msg', data.text);
-            formData.append('type', data.type);
+            if (data) {
+                formData.append('msg', data.text);
+                formData.append('type', data.type);
+            }
             formData.append('post', 'yes');
+            formData.append('live_status', state.isListening ? 'active' : 'inactive');
+            formData.append('speaking', state.isSpeaking ? 'yes' : 'no');
 
-            // Fire and forget for low latency
             fetch('post.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: formData
             }).catch(() => {});
         }
+
+        // Heartbeat for live status
+        setInterval(() => {
+            if (state.isListening) broadcast(null);
+        }, 3000);
 
         async function setupAudio() {
             try {

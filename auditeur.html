@@ -2,299 +2,246 @@
 <html lang="fr" class="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Orateur Pro - Auditeur Live</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
-                    colors: {
-                        fb: '#1877f2',
-                        obsidian: '#0a0a0b'
+                    colors: { fb: '#1877f2', obsidian: '#0a0a0b' },
+                    animation: {
+                        'slide-in': 'slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        'fade-in': 'fadeIn 0.4s ease-out'
+                    },
+                    keyframes: {
+                        slideIn: { '0%': { transform: 'translateX(-100%)' }, '100%': { transform: 'translateX(0)' } },
+                        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } }
                     }
                 }
             }
         }
     </script>
     <style>
-        /* Resolving CSS conflicts and @apply errors */
-        * { transition: all 0.25s ease; }
-
-        /* Apply 13px to text-bearing elements without breaking icons */
-        html, body, select, input, button, p, div, span, h1 {
+        * { transition: background-color 0.3s, color 0.3s; -webkit-tap-highlight-color: transparent; }
+        html, body {
             font-family: 'Inter', sans-serif;
-            font-size: 13px !important;
+            height: 100%; width: 100%; margin: 0; padding: 0;
+            overflow: hidden; position: fixed;
         }
 
-        /* Restore icon sizes */
-        .fas, .fab, .far {
-            font-family: "Font Awesome 6 Free" !important;
-            font-size: inherit !important;
-        }
-
-        body {
-            margin: 0; padding: 0; overflow: hidden;
-            background-color: #f0f2f5;
-        }
+        body { background-color: #f0f2f5; font-size: 13px; }
         .dark body { background-color: #050505; }
 
         .app-container {
-            max-width: 450px;
-            margin: 0 auto;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            background-color: #ffffff;
-            position: relative;
-            box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+            max-width: 450px; margin: 0 auto; height: 100%;
+            display: flex; flex-direction: column;
+            background-color: #ffffff; position: relative;
+            box-shadow: 0 0 40px rgba(0,0,0,0.1);
         }
         .dark .app-container { background-color: #0a0a0b; }
 
-        /* Professional Header - Glassmorphism */
         .header-app {
-            padding: 14px 20px;
-            background: rgba(255, 255, 255, 0.9);
+            padding: 14px 20px; z-index: 40;
+            background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border-bottom: 1px solid #e4e6eb;
-            z-index: 40;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
         }
-        .dark .header-app {
-            background: rgba(28, 30, 33, 0.85);
-            border-bottom: 1px solid #3e4042;
-        }
+        .dark .header-app { background: rgba(10, 10, 11, 0.9); border-bottom: 1px solid #242526; }
 
-        /* Drawer Menu */
-        .side-menu {
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 80%;
-            height: 100%;
-            background: #ffffff;
-            z-index: 100;
-            box-shadow: 10px 0 30px rgba(0,0,0,0.1);
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
+        /* Offline / Waiting View */
+        #offline-screen {
+            position: fixed; inset: 0; z-index: 60;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 40px; text-align: center; background: #ffffff;
         }
-        .dark .side-menu { background: #1c1e21; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
-        .side-menu.open { left: 0; }
+        .dark #offline-screen { background: #0a0a0b; }
 
-        .overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.4);
-            z-index: 90;
-            display: none;
+        .preacher-img {
+            width: 200px; height: 200px; border-radius: 30px;
+            object-fit: cover; margin-bottom: 0px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            border: 4px solid #f0f2f5;
         }
-        .overlay.show { display: block; }
+        .dark .preacher-img { border-color: #242526; }
 
-        /* Viewport Area */
+        /* Audio Spectrum Animation */
+        .spectrum { display: flex; align-items: flex-end; gap: 3px; height: 30px; margin-bottom: 20px; }
+        .bar { width: 3px; background: #1877f2; border-radius: 3px; animation: bounce 1s infinite ease-in-out; }
+        @keyframes bounce {
+            0%, 100% { height: 5px; }
+            50% { height: 25px; }
+        }
+        .bar:nth-child(2) { animation-delay: 0.1s; }
+        .bar:nth-child(3) { animation-delay: 0.2s; }
+        .bar:nth-child(4) { animation-delay: 0.3s; }
+        .bar:nth-child(5) { animation-delay: 0.4s; }
+
+        /* Stream Content */
         .stream-viewport {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-            background: #f0f2f5;
-            scroll-behavior: smooth;
+            flex: 1; overflow-y: auto; padding: 16px;
+            display: flex; flex-direction: column;
+            background: #f0f2f5; scroll-behavior: smooth;
         }
         .dark .stream-viewport { background: #050505; }
         .stream-viewport::-webkit-scrollbar { display: none; }
-        .stream-viewport { -ms-overflow-style: none; scrollbar-width: none; }
 
         .phrase-card {
-            background: #ffffff;
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 10px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            border: 1px solid #e4e6eb;
+            background: #ffffff; border-radius: 16px; padding: 12px 16px;
+            margin-bottom: 12px; border: 1px solid #e4e6eb;
+            animation: fadeIn 0.3s ease-out;
         }
         .dark .phrase-card { background: #242526; border: 1px solid #3e4042; }
 
-        .text-main {
-            font-size: 13px !important;
-            font-weight: 500;
-            color: #1c1e21;
-            line-height: 1.5;
+        .side-menu {
+            position: absolute; top: 0; left: -100%; width: 85%; height: 100%;
+            background: #ffffff; z-index: 100; padding: 24px;
+            transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex; flex-direction: column;
         }
-        .dark .text-main { color: #e4e6eb; }
+        .dark .side-menu { background: #1c1e21; }
+        .side-menu.open { left: 0; }
+
+        .overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 90; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        .overlay.show { opacity: 1; pointer-events: auto; }
+
+        .speaking-indicator {
+            font-size: 10px !important; color: #1877f2; font-weight: 700;
+            display: flex; align-items: center; gap: 5px; margin-top: 2px;
+        }
 
         .text-orig {
-            font-size: 10px !important;
-            font-weight: 700;
-            color: #65676b;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 4px;
+            font-size: 10px !important; font-weight: 700; color: #94a3b8;
+            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;
             display: none;
         }
-        .dark .text-orig { color: #b0b3b8; }
         .text-orig.show { display: block; }
-
-        .live-tag {
-            background: rgba(250, 62, 62, 0.1);
-            color: #fa3e3e;
-            padding: 2px 8px;
-            border-radius: 6px;
-            font-weight: 900;
-            font-size: 9px !important;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .pulse-dot {
-            width: 5px; height: 5px; background: #fa3e3e; border-radius: 50%;
-            animation: pulse-kf 1s infinite;
-        }
-        @keyframes pulse-kf { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.3); } }
-
-        .btn-circle {
-            width: 36px; height: 36px; border-radius: 50%;
-            background: #f0f2f5;
-            display: flex; align-items: center; justify-content: center;
-            color: #1c1e21;
-        }
-        .dark .btn-circle { background: #3a3b3c; color: #e4e6eb; }
-
-        select, input[type="range"] {
-            width: 100%;
-            background: #f0f2f5;
-            border: 1px solid #dddfe2;
-            border-radius: 10px;
-            padding: 8px 12px;
-            outline: none;
-        }
-        .dark select, .dark input[type="range"] { background: #3a3b3c; border: 1px solid #3e4042; color: white; }
     </style>
 </head>
 <body class="light">
     <div class="app-container">
 
+        <!-- Offline View -->
+        <div id="offline-screen" class="animate-fade-in">
+            <div class="relative mb-8">
+                <img src="https://images.unsplash.com/photo-1516280440614-37939bbdd4f1?q=80&w=500&auto=format&fit=crop" class="preacher-img" alt="Prédicateur">
+                <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-fb text-white px-4 py-1 rounded-full text-[10px] font-bold tracking-widest shadow-xl">STUDIO</div>
+            </div>
+            <div class="spectrum">
+                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            </div>
+            <h2 class="text-2xl font-black text-slate-800 dark:text-white mb-2 tracking-tight">Attente du direct</h2>
+            <p class="text-slate-400 font-medium leading-relaxed">L'orateur prépare la session.<br>La transcription commencera automatiquement.</p>
+        </div>
+
         <!-- Drawer -->
         <div id="overlay" class="overlay"></div>
-        <aside id="sideMenu" class="side-menu">
+        <aside id="sideMenu" class="side-menu shadow-2xl">
             <div class="flex justify-between items-center mb-8">
-                <h2 class="font-bold text-lg">Configuration</h2>
-                <button id="closeMenu" class="text-gray-400"><i class="fas fa-times"></i></button>
+                <h2 class="font-extrabold text-xl tracking-tight">Réglages Live</h2>
+                <button id="closeMenu" class="w-10 h-10 rounded-full bg-slate-100 dark:bg-white/5 flex items-center justify-center">
+                    <i class="fas fa-times text-slate-400"></i>
+                </button>
             </div>
 
-            <div class="space-y-6">
-                <div id="interpreterBadge" class="hidden items-center gap-2 p-2 bg-indigo-500 text-white rounded-lg text-[10px] font-bold uppercase animate-pulse">
-                    <i class="fas fa-language"></i> Mode Interprète Actif
-                </div>
-
-                <div>
-                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Langue de l'auditeur</label>
-                    <select id="langSelect">
-                        <option value="en-US">English (United States)</option>
-                        <option value="fr-FR">Français (France)</option>
-                        <option value="es-ES">Español (España)</option>
-                        <option value="de-DE">Deutsch (Deutschland)</option>
-                        <option value="it-IT">Italiano (Italia)</option>
-                        <option value="pt-PT">Português (Portugal)</option>
-                        <option value="zh-CN">中文 (中国)</option>
+            <div class="space-y-6 flex-1 overflow-y-auto">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Ma Langue</label>
+                    <select id="langSelect" class="w-full p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl font-semibold outline-none">
+                        <option value="fr-FR">Français (Origine)</option>
+                        <option value="en-US">English (US)</option>
+                        <option value="es-ES">Español (ES)</option>
+                        <option value="de-DE">Deutsch (DE)</option>
+                        <option value="it-IT">Italiano (IT)</option>
+                        <option value="pt-PT">Português (PT)</option>
                     </select>
                 </div>
 
-                <div>
-                    <label class="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Vitesse Vocale</label>
-                    <div class="flex items-center gap-3">
-                        <input type="range" id="rateRange" min="0.5" max="1.5" step="0.1" value="1">
-                        <span id="rateLabel" class="font-bold text-fb min-w-[30px]">1.0x</span>
-                    </div>
-                </div>
-
-                <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5">
+                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl">
                     <div class="flex flex-col">
-                        <span class="font-bold text-gray-700 dark:text-gray-300">Mode Miniature</span>
-                        <span class="text-[10px] text-gray-400">Voir la source orateur</span>
+                        <span class="font-bold text-slate-700 dark:text-gray-300">Traduction Vocale</span>
+                        <span class="text-[10px] text-slate-400">Synthèse intelligente</span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggleOriginal" class="sr-only peer">
-                        <div class="w-10 h-5 bg-gray-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-fb"></div>
+                        <input type="checkbox" id="toggleTTS" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-fb"></div>
                     </label>
                 </div>
 
-                <div class="pt-6 border-t border-gray-100 dark:border-white/5 space-y-4">
-                    <button id="testAudioBtn" class="w-full bg-fb text-white py-3.5 rounded-xl font-bold shadow-lg shadow-fb/20 active:scale-95 transition-transform">
-                        <i class="fas fa-play-circle mr-2"></i> Tester la synthèse
-                    </button>
+                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl">
+                    <div class="flex flex-col">
+                        <span class="font-bold">Mode Miniature</span>
+                        <span class="text-[10px] text-slate-400">Voir la source orateur</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggleOriginal" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-fb"></div>
+                    </label>
+                </div>
 
-                    <button id="themeToggle" class="w-full flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl font-semibold">
-                        <span>Changer le thème</span>
+                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl">
+                    <span class="font-bold">Mode Sombre</span>
+                    <button id="themeToggle" class="w-10 h-10 rounded-xl bg-white dark:bg-white/10 shadow-sm flex items-center justify-center">
                         <i class="fas fa-moon dark:hidden"></i>
                         <i class="fas fa-sun hidden dark:block text-yellow-400"></i>
                     </button>
                 </div>
-            </div>
 
-            <div class="space-y-4 pt-4 border-t border-gray-100 dark:border-white/5">
-                <div class="flex items-center justify-between p-4 bg-fb/5 rounded-xl border border-fb/10">
-                    <div class="flex flex-col">
-                        <span class="font-bold text-fb">Voix Orateur</span>
-                        <span class="text-[9px] text-fb/60">Audio direct de l'orateur</span>
+                <div class="space-y-4 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <div class="px-1 flex justify-between items-center mb-1">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Volume Direct</label>
+                        <span id="volVal" class="font-bold text-fb">80%</span>
                     </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="toggleLiveVoice" class="sr-only peer" checked>
-                        <div class="w-10 h-5 bg-gray-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-fb"></div>
-                    </label>
-                </div>
-
-                <div class="px-2">
-                    <label class="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 block">Volume Direct</label>
-                    <input type="range" id="liveVolume" min="0" max="1" step="0.1" value="0.8" class="w-full">
+                    <input type="range" id="liveVolume" min="0" max="1" step="0.1" value="0.8" class="w-full accent-fb">
                 </div>
             </div>
 
-            <div class="mt-auto text-[9px] text-gray-400 text-center uppercase tracking-widest font-bold">
-                Orateur Pro v5.0 // Stable Engine
+            <div class="mt-8 pt-4 border-t border-slate-100 dark:border-white/5 text-center">
+                <span class="text-[10px] font-black text-slate-300 uppercase tracking-widest">Orateur Pro // v6.0 Pro App</span>
             </div>
         </aside>
 
         <!-- Header -->
-        <header class="header-app">
-            <button id="openMenu" class="btn-circle">
-                <i class="fas fa-bars"></i>
+        <header class="header-app flex justify-between items-center">
+            <button id="openMenu" class="w-10 h-10 rounded-full flex items-center justify-center bg-slate-50 dark:bg-white/5">
+                <i class="fas fa-bars-staggered"></i>
             </button>
 
-            <div class="flex flex-col items-center">
-                <span class="font-bold text-[12px] tracking-tight text-slate-900 dark:text-white uppercase font-black">Orateur Pro</span>
-                <div class="live-tag">
-                    <div class="pulse-dot"></div> EN DIRECT
+            <div class="flex flex-col items-center text-center px-2">
+                <span class="font-black text-[12px] tracking-tight text-slate-900 dark:text-white uppercase">Orateur Pro</span>
+                <div id="live-status" class="flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                    <span class="text-[9px] font-black text-red-500 uppercase tracking-widest">En Direct</span>
+                </div>
+                <div id="speaking-box" class="speaking-indicator hidden">
+                    <i class="fas fa-wave-square animate-pulse"></i> L'ORATEUR PARLE
                 </div>
             </div>
 
-            <div class="btn-circle border-2 border-fb/20">
+            <div class="w-10 h-10 rounded-full border-2 border-fb/10 flex items-center justify-center">
                 <i class="fas fa-volume-up text-fb text-xs"></i>
             </div>
         </header>
 
-        <!-- Content -->
+        <!-- Main Stream -->
         <main class="stream-viewport" id="scrollBox">
-            <div id="empty-state" class="my-auto text-center space-y-4 opacity-30">
-                <i class="fas fa-tower-broadcast text-5xl text-fb"></i>
-                <p class="font-bold tracking-tight">Signal audio en attente...</p>
-            </div>
-
-            <div id="stream-content" class="hidden w-full"></div>
-            <div id="interim-block" class="phrase-card opacity-50 hidden italic border-dashed border-fb/30"></div>
+            <div id="stream-content" class="w-full flex flex-col"></div>
+            <div id="interim-block" class="phrase-card opacity-50 hidden italic border-fb/20 border-dashed text-fb"></div>
         </main>
     </div>
 
     <script>
+        // Disable Browser Back
+        history.pushState(null, null, location.href);
+        window.onpopstate = () => history.go(1);
+
         const UI = {
             menu: document.getElementById('sideMenu'),
             overlay: document.getElementById('overlay'),
@@ -303,185 +250,59 @@
             scroll: document.getElementById('scrollBox'),
             content: document.getElementById('stream-content'),
             interim: document.getElementById('interim-block'),
-            empty: document.getElementById('empty-state'),
+            offline: document.getElementById('offline-screen'),
+            speaking: document.getElementById('speaking-box'),
+            liveTag: document.getElementById('live-status'),
             lang: document.getElementById('langSelect'),
-            rate: document.getElementById('rateRange'),
-            rateLabel: document.getElementById('rateLabel'),
-            toggle: document.getElementById('toggleOriginal'),
-            theme: document.getElementById('themeToggle'),
-            test: document.getElementById('testAudioBtn'),
-            liveVoice: document.getElementById('toggleLiveVoice'),
-            liveVolume: document.getElementById('liveVolume')
+            vol: document.getElementById('liveVolume'),
+            volVal: document.getElementById('volVal'),
+            ttsToggle: document.getElementById('toggleTTS'),
+            origToggle: document.getElementById('toggleOriginal'),
+            theme: document.getElementById('themeToggle')
         };
 
         let lastTS = 0;
+        let lastSpeakText = "";
         const synth = window.speechSynthesis;
 
         const rtcState = {
-            pc: null,
-            stream: null,
-            audio: new Audio(),
-            pollInterval: null,
-            candidatesAdded: new Set()
+            pc: null, audio: new Audio(), candidatesAdded: new Set()
         };
 
         function logVoice(msg) {
-            console.log(msg);
-            fetch('log_voice.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: 'log=' + encodeURIComponent(msg)
-            });
+            fetch('log_voice.php', { method: 'POST', body: 'log=' + encodeURIComponent(msg), headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
         }
 
-        // Drawer Controls
         UI.open.onclick = () => { UI.menu.classList.add('open'); UI.overlay.classList.add('show'); };
         UI.close.onclick = UI.overlay.onclick = () => { UI.menu.classList.remove('open'); UI.overlay.classList.remove('show'); };
         UI.theme.onclick = () => document.documentElement.classList.toggle('dark');
+        UI.vol.oninput = () => { rtcState.audio.volume = UI.vol.value; UI.volVal.innerText = Math.round(UI.vol.value*100) + '%'; };
 
-        UI.lang.onchange = () => {
-            const isInterp = UI.lang.value !== 'fr-FR';
-            document.getElementById('interpreterBadge').classList.toggle('hidden', !isInterp);
-            document.getElementById('interpreterBadge').classList.toggle('flex', isInterp);
-        };
-
-        // Robust Voice Selection
-        function getBestVoice(langCode) {
+        function getBestVoice(lang) {
             const voices = synth.getVoices();
-            if (!voices.length) return null;
-
-            const short = langCode.split('-')[0].toLowerCase();
-
-            // 1. Precise match + Quality
-            let voice = voices.find(v => v.lang === langCode && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural')));
-            // 2. Precise match
-            if (!voice) voice = voices.find(v => v.lang === langCode);
-            // 3. Lang match + Quality
-            if (!voice) voice = voices.find(v => v.lang.startsWith(short) && (v.name.includes('Google') || v.name.includes('Premium')));
-            // 4. Lang match
-            if (!voice) voice = voices.find(v => v.lang.startsWith(short));
-            // 5. Fallback
-            if (!voice) voice = voices.find(v => v.default) || voices[0];
-
-            return voice;
+            return voices.find(v => v.lang === lang && (v.name.includes('Google') || v.name.includes('Premium'))) || voices.find(v => v.lang.startsWith(lang.split('-')[0])) || voices[0];
         }
 
-        function speak(text) {
-            if (!text?.trim()) return;
+        function speak(text, isInterim = false) {
+            if (!UI.ttsToggle.checked || !text?.trim()) return;
+            if (text === lastSpeakText) return;
+            lastSpeakText = text;
 
             synth.cancel();
-
             setTimeout(() => {
-                try {
-                    const target = UI.lang.value;
-                    const voice = getBestVoice(target);
-                    const utterance = new SpeechSynthesisUtterance(text);
+                const utterance = new SpeechSynthesisUtterance(text);
+                const target = UI.lang.value;
+                utterance.lang = target;
+                utterance.voice = getBestVoice(target);
+                utterance.rate = isInterim ? 1.3 : 1.1;
 
-                    utterance.lang = target;
-                    if (voice) utterance.voice = voice;
-                    utterance.rate = parseFloat(UI.rate.value);
-                    utterance.volume = 1;
+                utterance.onstart = () => rtcState.audio.volume = UI.vol.value * 0.15;
+                utterance.onend = () => rtcState.audio.volume = UI.vol.value;
+                utterance.onerror = () => rtcState.audio.volume = UI.vol.value;
 
-                    utterance.onstart = () => {
-                        // Audio Ducking: Baisser la voix de l'orateur pendant la traduction
-                        rtcState.audio.volume = parseFloat(UI.liveVolume.value) * 0.2;
-                        logVoice(`TTS Active | Lang: ${target}`);
-                    };
-
-                    utterance.onend = () => {
-                        // Restaurer le volume original
-                        rtcState.audio.volume = parseFloat(UI.liveVolume.value);
-                    };
-
-                    utterance.onerror = (e) => {
-                        rtcState.audio.volume = parseFloat(UI.liveVolume.value);
-                        logVoice(`TTS Fail: ${e.error}`);
-                    };
-
-                    synth.speak(utterance);
-                } catch (err) {
-                    logVoice("TTS Exception: " + err.message);
-                }
-            }, 50);
+                synth.speak(utterance);
+            }, 30);
         }
-
-        // Force Unlock Audio (on load and on interaction)
-        function forceUnlock() {
-            const unlock = new SpeechSynthesisUtterance("");
-            synth.speak(unlock);
-
-            // Audio context unlock
-            rtcState.audio.play().catch(() => {});
-
-            logVoice("Speech engine unlocked");
-            initWebRTCReceiver();
-        }
-        window.addEventListener('click', forceUnlock, { once: true });
-
-        async function initWebRTCReceiver() {
-            if (rtcState.pc) rtcState.pc.close();
-
-            rtcState.pc = new RTCPeerConnection({
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-            });
-
-            rtcState.pc.ontrack = (event) => {
-                logVoice("WebRTC Track received");
-                rtcState.audio.srcObject = event.streams[0];
-                rtcState.audio.play();
-            };
-
-            rtcState.pc.onicecandidate = ({candidate}) => {
-                if (candidate) {
-                    fetch('signaling.php?action=push&role=auditor', {
-                        method: 'POST',
-                        body: JSON.stringify({ candidate })
-                    });
-                }
-            };
-
-            // Signaling poll
-            if (rtcState.pollInterval) clearInterval(rtcState.pollInterval);
-            rtcState.pollInterval = setInterval(async () => {
-                try {
-                    const res = await fetch('signaling.php');
-                    const data = await res.json();
-
-                    if (data.offer && rtcState.pc.signalingState === 'stable') {
-                        await rtcState.pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-                        const answer = await rtcState.pc.createAnswer();
-                        await rtcState.pc.setLocalDescription(answer);
-                        fetch('signaling.php?action=push&role=auditor', {
-                            method: 'POST',
-                            body: JSON.stringify({ answer })
-                        });
-                    }
-
-                    if (data.orator_candidates && rtcState.pc.remoteDescription) {
-                        data.orator_candidates.forEach(candidate => {
-                            const candStr = JSON.stringify(candidate);
-                            if (candidate && !rtcState.candidatesAdded.has(candStr)) {
-                                rtcState.pc.addIceCandidate(new RTCIceCandidate(candidate)).catch(() => {});
-                                rtcState.candidatesAdded.add(candStr);
-                            }
-                        });
-                    }
-                } catch (e) {}
-            }, 3000);
-        }
-
-        UI.liveVolume.oninput = () => {
-            rtcState.audio.volume = parseFloat(UI.liveVolume.value);
-        };
-
-        UI.liveVoice.onchange = () => {
-            rtcState.audio.muted = !UI.liveVoice.checked;
-        };
-
-        UI.test.onclick = () => {
-            logVoice("User test triggered");
-            speak("Ceci est un test de la synthèse vocale Orateur Pro.");
-        };
 
         async function fastTranslate(text) {
             const target = UI.lang.value.split('-')[0];
@@ -493,46 +314,80 @@
             } catch (e) { return text; }
         }
 
-        async function refresh() {
+        async function poll() {
             try {
-                const res = await fetch('broadcast.json?t=' + Date.now());
+                const res = await fetch('post.php?t=' + Date.now());
                 const data = await res.json();
 
-                if (data.timestamp > lastTS) {
-                    lastTS = data.timestamp;
-                    UI.empty.classList.add('hidden');
-                    UI.content.classList.remove('hidden');
+                const now = Date.now();
+                const isRecentlyActive = (now - data.timestamp) < 10000;
+                const liveActive = data.is_live && isRecentlyActive;
 
+                UI.offline.classList.toggle('hidden', liveActive);
+                UI.speaking.classList.toggle('hidden', !data.is_speaking || !liveActive);
+                UI.liveTag.classList.toggle('opacity-0', !liveActive);
+
+                if (liveActive && data.timestamp > lastTS) {
+                    lastTS = data.timestamp;
                     if (data.type === 'interim') {
                         UI.interim.classList.remove('hidden');
-                        UI.interim.innerText = await fastTranslate(data.text);
-                    } else {
+                        const translated = await fastTranslate(data.text);
+                        UI.interim.innerText = translated;
+                        if (translated.split(' ').length > 8) speak(translated, true);
+                    } else if (data.text) {
                         UI.interim.classList.add('hidden');
                         const translated = await fastTranslate(data.text);
-
                         const card = document.createElement('div');
                         card.className = 'phrase-card';
-                        const showOrig = UI.toggle.checked ? 'show' : '';
+                        const showOrig = UI.origToggle.checked ? 'show' : '';
                         card.innerHTML = `
                             <div class="text-orig ${showOrig}">${data.text}</div>
-                            <div class="text-main">${translated}</div>
+                            <div class="font-bold text-slate-800 dark:text-white leading-relaxed">${translated}</div>
                         `;
                         UI.content.appendChild(card);
-                        speak(translated);
+                        speak(translated, false);
                     }
                     UI.scroll.scrollTop = UI.scroll.scrollHeight;
                 }
             } catch (e) {}
         }
 
-        setInterval(refresh, 300);
-        UI.rate.oninput = () => UI.rateLabel.innerText = UI.rate.value + 'x';
+        setInterval(poll, 400);
 
-        // Listen for voice loading
-        window.speechSynthesis.onvoiceschanged = () => {
-            logVoice(`Voices ready: ${synth.getVoices().length}`);
-        };
-        logVoice("Auditor loaded. Engine status: " + (!!window.speechSynthesis));
+        async function initRTC() {
+            if (rtcState.pc) rtcState.pc.close();
+            rtcState.pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+            rtcState.pc.ontrack = (e) => { rtcState.audio.srcObject = e.streams[0]; rtcState.audio.play(); };
+            rtcState.pc.onicecandidate = (e) => { if (e.candidate) fetch('signaling.php?action=push&role=auditor', { method: 'POST', body: JSON.stringify({ candidate: e.candidate }) }); };
+
+            setInterval(async () => {
+                const res = await fetch('signaling.php');
+                const sig = await res.json();
+                if (sig.offer && rtcState.pc.signalingState === 'stable') {
+                    await rtcState.pc.setRemoteDescription(new RTCSessionDescription(sig.offer));
+                    const ans = await rtcState.pc.createAnswer();
+                    await rtcState.pc.setLocalDescription(ans);
+                    fetch('signaling.php?action=push&role=auditor', { method: 'POST', body: JSON.stringify({ answer: ans }) });
+                }
+                if (sig.orator_candidates && rtcState.pc.remoteDescription) {
+                    sig.orator_candidates.forEach(c => {
+                        if (c && !rtcState.candidatesAdded.has(JSON.stringify(c))) {
+                            rtcState.pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{});
+                            rtcState.candidatesAdded.add(JSON.stringify(c));
+                        }
+                    });
+                }
+            }, 3000);
+        }
+
+        window.addEventListener('click', () => {
+            rtcState.audio.play().catch(()=>{});
+            const unlock = new SpeechSynthesisUtterance("");
+            synth.speak(unlock);
+            initRTC();
+        }, { once: true });
+
+        synth.onvoiceschanged = () => console.log("Voices ready");
     </script>
 </body>
 </html>
