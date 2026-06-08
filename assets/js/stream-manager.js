@@ -12,7 +12,7 @@ class StreamManager {
     }
 
     async init(stream) {
-        const sessionId = window.SessionManager.currentSession?.id;
+        const sessionId = window.sessionManager.currentSession?.id;
         if (!sessionId) return;
 
         // Clear previous signaling
@@ -80,4 +80,4 @@ class StreamManager {
     }
 }
 
-window.StreamManager = new StreamManager();
+window.streamManager = new StreamManager();

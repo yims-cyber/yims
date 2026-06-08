@@ -53,4 +53,4 @@ class SessionManager {
     }
 }
 
-window.SessionManager = new SessionManager();
+window.sessionManager = new SessionManager();

@@ -128,18 +128,18 @@
                 <div class="grid grid-cols-1 gap-3">
                     <div class="bg-obsidian-950/40 p-3 rounded-xl border border-white/5 flex justify-between items-center">
                         <div>
-                            <p class="text-[9px] text-gray-500 uppercase font-bold">Stabilité (SNR)</p>
-                            <p id="snrLabel" class="font-display text-sm text-gray-400">0%</p>
+                            <p class="text-[9px] text-gray-500 uppercase font-bold">Qualité Signal (SNR)</p>
+                            <p id="snrLabel" class="font-display text-sm text-gray-400">Attente...</p>
                         </div>
                         <div id="vadIndicator" class="w-3 h-3 rounded-full bg-gray-800 transition-colors"></div>
                     </div>
                     <div class="bg-obsidian-950/40 p-3 rounded-xl border border-white/5">
                         <div class="flex justify-between text-[9px] uppercase font-bold mb-2">
-                            <span class="text-gray-500">Suppression de Bruit</span>
-                            <span id="noiseFloorLabel" class="text-neon-purple">-100 dB</span>
+                            <span class="text-gray-500">Bruit & Voix Secondaires</span>
+                            <span id="interferenceLabel" class="text-neon-purple">0%</span>
                         </div>
                         <div class="h-1 bg-obsidian-900 rounded-full overflow-hidden">
-                            <div id="noiseMeter" class="h-full bg-neon-purple" style="width: 0%"></div>
+                            <div id="interferenceMeter" class="h-full bg-neon-purple" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
@@ -218,8 +218,8 @@
             dbText: document.getElementById('dbDisplay'),
             snrText: document.getElementById('snrLabel'),
             vadDot: document.getElementById('vadIndicator'),
-            noiseMeter: document.getElementById('noiseMeter'),
-            noiseText: document.getElementById('noiseFloorLabel'),
+            interferenceMeter: document.getElementById('interferenceMeter'),
+            interferenceText: document.getElementById('interferenceLabel'),
 
             timer: document.getElementById('sessionTimer'),
             participants: document.getElementById('participantCounter'),
@@ -241,7 +241,7 @@
 
         // Chargement de l'historique des sessions au démarrage
         window.addEventListener('load', async () => {
-            const history = await SessionManager.getHistory();
+            const history = await sessionManager.getHistory();
             if (history.length > 0) {
                 UI.sessionHistory.innerHTML = history.map(s => `
                     <div class="p-2 bg-white/5 rounded border border-white/5 flex justify-between items-center">
@@ -260,7 +260,7 @@
             if (!UI.sessionName.value || !UI.oratorName.value) return alert("Remplissez les champs");
 
             try {
-                const session = await SessionManager.startSession(UI.sessionName.value, UI.oratorName.value);
+                const session = await sessionManager.startSession(UI.sessionName.value, UI.oratorName.value);
                 if (UI.openAIKey.value) localStorage.setItem('openai_key', UI.openAIKey.value);
 
                 UI.setup.style.display = 'none';
@@ -278,20 +278,21 @@
         };
 
         function initAudioCallbacks() {
-            window.AudioEngine.onMetricsUpdate = (metrics, dataArray) => {
+            window.audioEngine.onMetricsUpdate = (metrics, dataArray) => {
                 UI.dbText.innerText = `${metrics.db.toFixed(1)} dB`;
                 UI.dbMeter.style.width = `${Math.max(0, (metrics.db + 60) * 1.66)}%`;
 
-                UI.noiseText.innerText = `${metrics.noiseFloor.toFixed(0)} dB`;
-                UI.noiseMeter.style.width = `${Math.max(0, (metrics.noiseFloor + 100))}%`;
+                UI.interferenceText.innerText = `${metrics.interference.toFixed(0)}%`;
+                UI.interferenceMeter.style.width = `${metrics.interference}%`;
 
                 UI.vadDot.style.background = metrics.isSpeaking ? '#39ff14' : '#1a1a1e';
                 if (metrics.isSpeaking) {
-                    UI.snrText.innerText = `${Math.min(100, (metrics.snr / 30) * 100).toFixed(0)}%`;
-                    UI.snrText.className = "font-display text-sm text-neon-green";
+                    const quality = Math.min(100, (metrics.snr / 30) * 100);
+                    UI.snrText.innerText = `${quality.toFixed(0)}% (${quality > 70 ? 'Excellent' : 'Moyen'})`;
+                    UI.snrText.className = "font-display text-[10px] text-neon-green";
                 } else {
-                    UI.snrText.innerText = "repos";
-                    UI.snrText.className = "font-display text-sm text-gray-500";
+                    UI.snrText.innerText = "Silence...";
+                    UI.snrText.className = "font-display text-[10px] text-gray-500";
                 }
 
                 drawVisualizer(dataArray, metrics.isSpeaking);
@@ -299,20 +300,20 @@
         }
 
         function initSpeechCallbacks() {
-            window.SpeechProcessor.onInterimResult = (text) => {
+            window.speechProcessor.onInterimResult = (text) => {
                 UI.transcript.innerHTML = `<span class="text-neon-cyan/70 italic">${text}</span>`;
             };
 
-            window.SpeechProcessor.onRawFinalResult = (text) => {
+            window.speechProcessor.onRawFinalResult = (text) => {
                 UI.transcript.innerHTML = `<span class="text-gray-400">${text}</span> <span class="text-[10px] text-neon-purple animate-pulse">(Correction IA...)</span>`;
             };
 
-            window.SpeechProcessor.onFinalResult = (item) => {
+            window.speechProcessor.onFinalResult = (item) => {
                 UI.transcript.innerHTML = `<span class="text-white">${item.text}</span>`;
                 addHistoryCard(item);
             };
 
-            window.SpeechProcessor.onAIProcessing = (isProcessing) => {
+            window.speechProcessor.onAIProcessing = (isProcessing) => {
                 UI.aiLoading.style.opacity = isProcessing ? '1' : '0';
             };
         }
@@ -338,11 +339,11 @@
 
         UI.masterBtn.onclick = async () => {
             if (!isActive) {
-                await window.AudioEngine.init();
-                window.AudioEngine.setAgc(true);
+                await window.audioEngine.init();
+                window.audioEngine.setAgc(true);
 
-                await window.StreamManager.init(window.AudioEngine.stream);
-                window.SpeechProcessor.start();
+                await window.streamManager.init(window.audioEngine.stream);
+                window.speechProcessor.start();
 
                 isActive = true;
                 UI.masterBtn.innerHTML = '<i class="fas fa-stop mr-2"></i> Couper la Station';
@@ -355,7 +356,7 @@
 
                 startTimer();
             } else {
-                window.SessionManager.stopSession().then(() => location.reload());
+                window.sessionManager.stopSession().then(() => location.reload());
             }
         };
 
@@ -370,9 +371,23 @@
             }, 1000);
         }
 
+        function startStatsPoll() {
+            setInterval(async () => {
+                if (!window.sessionManager.currentSession) return;
+                try {
+                    const res = await fetch('api/session.php?action=list');
+                    const data = await res.json();
+                    const session = data.sessions.find(s => s.id === window.sessionManager.currentSession.id);
+                    if (session) {
+                        UI.participants.innerText = session.participants || 0;
+                    }
+                } catch(e) {}
+            }, 5000);
+        }
+
         function renderHistory() {
             UI.history.innerHTML = '';
-            window.SpeechProcessor.history.forEach(item => addHistoryCard(item));
+            window.speechProcessor.history.forEach(item => addHistoryCard(item));
         }
 
         function addHistoryCard(item) {
@@ -391,7 +406,7 @@
 
         UI.cleanupBtn.onclick = () => {
             if (confirm("Terminer la session et purger les données locales ?")) {
-                window.SessionManager.stopSession().then(() => {
+                window.sessionManager.stopSession().then(() => {
                     localStorage.removeItem('orateur_pro_ultra_history');
                     location.reload();
                 });
@@ -402,7 +417,7 @@
             if (confirm("Purger l'historique visuel ?")) {
                 UI.history.innerHTML = '';
                 localStorage.removeItem('orateur_pro_ultra_history');
-                window.SpeechProcessor.history = [];
+                window.speechProcessor.history = [];
             }
         };
     </script>

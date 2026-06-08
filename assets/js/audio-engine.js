@@ -20,6 +20,7 @@ class AudioEngine {
             db: -100,
             noiseFloor: -100,
             snr: 0,
+            interference: 0,
             isSpeaking: false
         };
 
@@ -108,14 +109,24 @@ class AudioEngine {
             if (currentDb < -55) {
                 this.metrics.noiseFloor = this.metrics.noiseFloor * 0.95 + currentDb * 0.05;
                 this.metrics.isSpeaking = false;
+                this.metrics.interference = 0;
                 // Fermeture douce du gate
                 this.gate.gain.setTargetAtTime(0.01, this.context.currentTime, 0.05);
             } else {
-                const threshold = this.metrics.noiseFloor + 12;
+                const threshold = this.metrics.noiseFloor + 10;
                 this.metrics.isSpeaking = currentDb > threshold;
 
                 if (this.metrics.isSpeaking) {
                     this.metrics.snr = currentDb - this.metrics.noiseFloor;
+
+                    // Calcul d'interférence (Bruit hors bande ou voix secondaires)
+                    // On regarde l'énergie dans les hautes fréquences vs moyennes
+                    let midEnergy = 0, highEnergy = 0;
+                    for(let i=10; i<40; i++) midEnergy += dataArray[i]; // ~800Hz - 3kHz
+                    for(let i=60; i<100; i++) highEnergy += dataArray[i]; // > 5kHz
+
+                    this.metrics.interference = Math.min(100, (highEnergy / (midEnergy || 1)) * 100);
+
                     // Ouverture instantanée du gate
                     this.gate.gain.setTargetAtTime(1.0, this.context.currentTime, 0.01);
                 }
@@ -135,4 +146,4 @@ class AudioEngine {
     setAgc(enabled) { this.agcEnabled = enabled; }
 }
 
-window.AudioEngine = new AudioEngine();
+window.audioEngine = new AudioEngine();

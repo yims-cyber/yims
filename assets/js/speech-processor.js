@@ -98,22 +98,22 @@ class SpeechProcessor {
 
     broadcast(data) {
         // P2P WebRTC
-        if (window.StreamManager?.dc?.readyState === 'open') {
-            window.StreamManager.dc.send(JSON.stringify({
+        if (window.streamManager?.dc?.readyState === 'open') {
+            window.streamManager.dc.send(JSON.stringify({
                 ...data,
                 timestamp: Date.now(),
-                is_speaking: window.AudioEngine?.metrics.isSpeaking
+                is_speaking: window.audioEngine?.metrics.isSpeaking
             }));
         }
         // Backend Fallback
-        const sessionId = window.SessionManager?.currentSession?.id;
+        const sessionId = window.sessionManager?.currentSession?.id;
         if (!sessionId) return;
         const formData = new URLSearchParams();
         formData.append('session_id', sessionId);
         formData.append('msg', data.text);
         formData.append('type', data.type);
-        formData.append('speaking', window.AudioEngine?.metrics.isSpeaking ? 'yes' : 'no');
+        formData.append('speaking', window.audioEngine?.metrics.isSpeaking ? 'yes' : 'no');
         fetch('api/broadcast.php', { method: 'POST', body: formData }).catch(() => {});
     }
 }
-window.SpeechProcessor = new SpeechProcessor();
+window.speechProcessor = new SpeechProcessor();
