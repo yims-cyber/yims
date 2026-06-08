@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orateur Ultra V5 - Console de Prédication</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        obsidian: { 950: '#020203', 900: '#050506', 800: '#0d0d0f', 700: '#1a1a1e' },
+                        neon: { cyan: '#00f2ff', purple: '#bc13fe', green: '#39ff14' }
+                    },
+                    fontFamily: { 'display': ['Orbitron', 'sans-serif'], 'sans': ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-size: 13px !important; }
+        h1, h2, .font-display { font-size: 1.1rem !important; }
+        body {
+            background-color: #020203;
+            background-image: radial-gradient(at 0% 0%, rgba(188, 19, 254, 0.08) 0px, transparent 50%),
+                              radial-gradient(at 100% 100%, rgba(0, 242, 255, 0.08) 0px, transparent 50%);
+            color: #e2e8f0; height: 100vh; overflow: hidden;
+        }
+        .glass { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .neon-border { border: 1px solid rgba(0, 242, 255, 0.2); box-shadow: 0 0 15px rgba(0, 242, 255, 0.05); }
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(188, 19, 254, 0.2); border-radius: 10px; }
+
+        #setup-overlay { position: fixed; inset: 0; z-index: 100; display: flex; items-center; justify-content: center; background: rgba(2,2,3,0.9); backdrop-filter: blur(10px); }
+        .input-ultra { background: #0d0d0f; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px 15px; color: #fff; width: 100%; transition: all 0.3s; }
+        .input-ultra:focus { border-color: #00f2ff; box-shadow: 0 0 10px rgba(0, 242, 255, 0.1); outline: none; }
+    </style>
+</head>
+<body class="flex flex-col p-4 gap-4">
+
+    <!-- Setup Overlay -->
+    <div id="setup-overlay">
+        <div class="glass p-8 rounded-2xl w-full max-w-md space-y-6 neon-border">
+            <div class="text-center">
+                <i class="fas fa-microchip text-4xl text-neon-cyan mb-4"></i>
+                <h2 class="font-display font-bold text-white uppercase tracking-widest">Initialisation Ultra V5</h2>
+                <p class="text-[10px] text-gray-500 mt-1 uppercase">Configurez votre session de prédication</p>
+            </div>
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-[9px] font-bold text-gray-500 uppercase ml-1">Nom de la Session</label>
+                    <input type="text" id="sessionName" placeholder="Ex: Culte de Victoire" class="input-ultra">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[9px] font-bold text-gray-500 uppercase ml-1">Nom de l'Orateur</label>
+                    <input type="text" id="oratorName" placeholder="Ex: Pasteur Jean" class="input-ultra">
+                </div>
+                <div class="space-y-2">
+                    <label class="text-[9px] font-bold text-gray-500 uppercase ml-1">Clé OpenAI (Optionnel)</label>
+                    <input type="password" id="openAIKeyInput" class="input-ultra" placeholder="sk-...">
+                </div>
+            </div>
+            <button id="startSetupBtn" class="w-full py-4 bg-neon-cyan text-obsidian-950 font-black uppercase tracking-widest rounded-xl hover:brightness-110 transition-all active:scale-95 shadow-lg shadow-neon-cyan/20">
+                Lancer la Station
+            </button>
+            <div class="pt-4 border-t border-white/5">
+                <p class="text-[9px] font-black text-gray-600 uppercase mb-2">Sessions Précédentes</p>
+                <div id="sessionHistoryList" class="max-h-32 overflow-y-auto custom-scrollbar space-y-2">
+                    <p class="text-[9px] text-gray-700 italic">Aucune session enregistrée</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header Principal -->
+    <header class="flex justify-between items-center h-16 px-4 glass rounded-xl border-b border-neon-cyan/20">
+        <div class="flex items-center gap-4">
+            <div class="w-10 h-10 bg-neon-cyan/10 rounded-lg flex items-center justify-center border border-neon-cyan/30">
+                <i class="fas fa-tower-broadcast text-neon-cyan animate-pulse"></i>
+            </div>
+            <div>
+                <h1 id="displaySessionName" class="font-display font-bold text-white uppercase tracking-tighter">Session Ultra</h1>
+                <div class="flex items-center gap-2">
+                    <span id="statusDot" class="w-2 h-2 bg-gray-600 rounded-full"></span>
+                    <span id="statusText" class="text-[9px] font-black uppercase text-gray-500">Hors Ligne</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-6">
+            <div class="hidden md:flex items-center gap-4 px-4 py-2 bg-obsidian-800 rounded-lg border border-white/5">
+                <div class="text-center">
+                    <p class="text-[8px] text-gray-500 uppercase font-bold">Auditeurs</p>
+                    <p id="participantCounter" class="font-display text-neon-cyan text-sm">0</p>
+                </div>
+                <div class="w-[1px] h-6 bg-white/5"></div>
+                <div class="text-center">
+                    <p class="text-[8px] text-gray-500 uppercase font-bold">Temps</p>
+                    <p id="sessionTimer" class="font-display text-neon-purple text-sm">00:00:00</p>
+                </div>
+            </div>
+            <button id="hardCleanupBtn" class="bg-red-500/10 hover:bg-red-500/20 text-red-500 px-3 py-2 rounded-lg border border-red-500/30 text-[10px] font-bold uppercase transition-all">
+                <i class="fas fa-power-off"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-12 gap-4 min-h-0">
+        <!-- Colonne Gauche: Moteur Audio -->
+        <div class="col-span-12 lg:col-span-3 flex flex-col gap-4 min-h-0">
+            <div class="glass rounded-2xl p-5 flex-1 flex flex-col gap-4 neon-border">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-black text-neon-cyan uppercase tracking-widest">Audio Intelligence V5</span>
+                    <span id="dbDisplay" class="font-mono text-[10px] text-gray-500">-100 dB</span>
+                </div>
+
+                <div class="h-1.5 bg-obsidian-950 rounded-full overflow-hidden border border-white/5">
+                    <div id="dbMeter" class="h-full bg-gradient-to-r from-neon-cyan to-neon-purple transition-all duration-75" style="width: 0%"></div>
+                </div>
+
+                <div class="flex-1 bg-obsidian-950/50 rounded-xl overflow-hidden border border-white/5 relative">
+                    <canvas id="visualizerCanvas" class="w-full h-full"></canvas>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3">
+                    <div class="bg-obsidian-950/40 p-3 rounded-xl border border-white/5 flex justify-between items-center">
+                        <div>
+                            <p class="text-[9px] text-gray-500 uppercase font-bold">Qualité Signal (SNR)</p>
+                            <p id="snrLabel" class="font-display text-sm text-gray-400">Attente...</p>
+                        </div>
+                        <div id="vadIndicator" class="w-3 h-3 rounded-full bg-gray-800 transition-colors"></div>
+                    </div>
+                    <div class="bg-obsidian-950/40 p-3 rounded-xl border border-white/5">
+                        <div class="flex justify-between text-[9px] uppercase font-bold mb-2">
+                            <span class="text-gray-500">Bruit & Voix Secondaires</span>
+                            <span id="interferenceLabel" class="text-neon-purple">0%</span>
+                        </div>
+                        <div class="h-1 bg-obsidian-900 rounded-full overflow-hidden">
+                            <div id="interferenceMeter" class="h-full bg-neon-purple" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="masterToggle" class="w-full py-4 bg-neon-cyan/10 border border-neon-cyan/50 text-neon-cyan font-black uppercase tracking-widest rounded-xl hover:bg-neon-cyan/20 transition-all active:scale-95 shadow-lg">
+                    <i class="fas fa-play mr-2"></i> Lancer la Prise
+                </button>
+            </div>
+        </div>
+
+        <!-- Centre: Transcription IA -->
+        <div class="col-span-12 lg:col-span-9 flex flex-col gap-4 min-h-0">
+            <!-- Zone de transcription en direct -->
+            <div class="glass rounded-2xl p-6 relative overflow-hidden h-64 flex flex-col justify-center">
+                <div class="absolute top-4 left-6 flex items-center gap-2">
+                    <div class="w-2 h-2 rounded-full bg-neon-green animate-pulse"></div>
+                    <span class="text-[10px] font-black text-neon-green uppercase tracking-widest">Flux Brute & Raffinement IA</span>
+                </div>
+
+                <div id="transcriptLive" class="text-2xl font-light leading-relaxed text-white/90">
+                    <span class="text-gray-700 italic">En attente de parole...</span>
+                </div>
+
+                <div id="aiProcessing" class="absolute bottom-4 right-6 text-[10px] text-neon-cyan font-black uppercase opacity-0 transition-opacity">
+                    <i class="fas fa-sparkles animate-bounce mr-2"></i> IA en cours de correction...
+                </div>
+            </div>
+
+            <!-- Historique avec suppression -->
+            <div class="flex-1 flex flex-col min-h-0">
+                <div class="flex justify-between items-center mb-2 px-2">
+                    <span class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Historique IA Vérifié</span>
+                    <button id="purgeHistoryBtn" class="text-[10px] text-red-400/50 hover:text-red-400 font-bold uppercase transition-colors">
+                        <i class="fas fa-trash-alt mr-2"></i> Purger l'historique
+                    </button>
+                </div>
+                <div id="historyList" class="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar">
+                    <!-- Cards de session -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer Stats -->
+    <footer class="h-8 flex justify-between items-center text-[9px] text-gray-600 font-black uppercase tracking-widest px-2">
+        <div class="flex gap-4">
+            <span>Orateur: <span id="displayOratorName" class="text-neon-cyan">---</span></span>
+            <span>Session ID: <span id="displaySessionID" class="text-gray-400">---</span></span>
+        </div>
+        <div class="flex gap-4">
+            <span id="permStatusLabel" class="text-orange-500">Micro Non Autorisé</span>
+            <span>API: <span id="apiStatusLabel" class="text-gray-500">IDLE</span></span>
+        </div>
+    </footer>
+
+    <!-- Scripts Modulaires -->
+    <script src="assets/js/audio-engine.js"></script>
+    <script src="assets/js/session-manager.js"></script>
+    <script src="assets/js/stream-manager.js"></script>
+    <script src="assets/js/speech-processor.js"></script>
+    <script>
+        const UI = {
+            setup: document.getElementById('setup-overlay'),
+            startBtn: document.getElementById('startSetupBtn'),
+            masterBtn: document.getElementById('masterToggle'),
+            sessionName: document.getElementById('sessionName'),
+            oratorName: document.getElementById('oratorName'),
+            openAIKey: document.getElementById('openAIKeyInput'),
+
+            transcript: document.getElementById('transcriptLive'),
+            aiLoading: document.getElementById('aiProcessing'),
+            history: document.getElementById('historyList'),
+            purgeBtn: document.getElementById('purgeHistoryBtn'),
+
+            dbMeter: document.getElementById('dbMeter'),
+            dbText: document.getElementById('dbDisplay'),
+            snrText: document.getElementById('snrLabel'),
+            vadDot: document.getElementById('vadIndicator'),
+            interferenceMeter: document.getElementById('interferenceMeter'),
+            interferenceText: document.getElementById('interferenceLabel'),
+
+            timer: document.getElementById('sessionTimer'),
+            participants: document.getElementById('participantCounter'),
+            statusText: document.getElementById('statusText'),
+            statusDot: document.getElementById('statusDot'),
+
+            displaySession: document.getElementById('displaySessionName'),
+            displayOrator: document.getElementById('displayOratorName'),
+            displayID: document.getElementById('displaySessionID'),
+            cleanupBtn: document.getElementById('hardCleanupBtn'),
+            sessionHistory: document.getElementById('sessionHistoryList')
+        };
+
+        let timerInterval;
+        let isActive = false;
+
+        // Pré-remplissage OpenAI Key
+        UI.openAIKey.value = localStorage.getItem('openai_key') || "";
+
+        // Chargement de l'historique des sessions au démarrage
+        window.addEventListener('load', async () => {
+            const history = await sessionManager.getHistory();
+            if (history.length > 0) {
+                UI.sessionHistory.innerHTML = history.map(s => `
+                    <div class="p-2 bg-white/5 rounded border border-white/5 flex justify-between items-center">
+                        <div class="overflow-hidden">
+                            <p class="text-[9px] text-white font-bold truncate">${s.name}</p>
+                            <p class="text-[7px] text-gray-500 uppercase">${new Date(s.start_time * 1000).toLocaleDateString()}</p>
+                        </div>
+                        <i class="fas fa-history text-gray-700"></i>
+                    </div>
+                `).join('');
+            }
+        });
+
+        // Initialisation de la Station
+        UI.startBtn.onclick = async () => {
+            if (!UI.sessionName.value || !UI.oratorName.value) return alert("Remplissez les champs");
+
+            try {
+                const session = await sessionManager.startSession(UI.sessionName.value, UI.oratorName.value);
+                if (UI.openAIKey.value) localStorage.setItem('openai_key', UI.openAIKey.value);
+
+                UI.setup.style.display = 'none';
+                UI.displaySession.innerText = session.name;
+                UI.displayOrator.innerText = session.orator;
+                UI.displayID.innerText = session.id;
+
+                initAudioCallbacks();
+                initSpeechCallbacks();
+                renderHistory();
+                startStatsPoll();
+            } catch (e) {
+                alert(e.message);
+            }
+        };
+
+        function initAudioCallbacks() {
+            window.audioEngine.onMetricsUpdate = (metrics, dataArray) => {
+                UI.dbText.innerText = `${metrics.db.toFixed(1)} dB`;
+                UI.dbMeter.style.width = `${Math.max(0, (metrics.db + 60) * 1.66)}%`;
+
+                UI.interferenceText.innerText = `${metrics.interference.toFixed(0)}%`;
+                UI.interferenceMeter.style.width = `${metrics.interference}%`;
+
+                UI.vadDot.style.background = metrics.isSpeaking ? '#39ff14' : '#1a1a1e';
+                if (metrics.isSpeaking) {
+                    const quality = Math.min(100, (metrics.snr / 30) * 100);
+                    UI.snrText.innerText = `${quality.toFixed(0)}% (${quality > 70 ? 'Excellent' : 'Moyen'})`;
+                    UI.snrText.className = "font-display text-[10px] text-neon-green";
+                } else {
+                    UI.snrText.innerText = "Silence...";
+                    UI.snrText.className = "font-display text-[10px] text-gray-500";
+                }
+
+                drawVisualizer(dataArray, metrics.isSpeaking);
+            };
+        }
+
+        function initSpeechCallbacks() {
+            window.speechProcessor.onInterimResult = (text) => {
+                UI.transcript.innerHTML = `<span class="text-neon-cyan/70 italic">${text}</span>`;
+            };
+
+            window.speechProcessor.onRawFinalResult = (text) => {
+                UI.transcript.innerHTML = `<span class="text-gray-400">${text}</span> <span class="text-[10px] text-neon-purple animate-pulse">(Correction IA...)</span>`;
+            };
+
+            window.speechProcessor.onFinalResult = (item) => {
+                UI.transcript.innerHTML = `<span class="text-white">${item.text}</span>`;
+                addHistoryCard(item);
+            };
+
+            window.speechProcessor.onAIProcessing = (isProcessing) => {
+                UI.aiLoading.style.opacity = isProcessing ? '1' : '0';
+            };
+        }
+
+        function drawVisualizer(dataArray, isSpeaking) {
+            const canvas = document.getElementById('visualizerCanvas');
+            const ctx = canvas.getContext('2d');
+            if (canvas.width !== canvas.offsetWidth) {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
+
+            ctx.clearRect(0,0, canvas.width, canvas.height);
+            const barWidth = (canvas.width / dataArray.length) * 2;
+            let x = 0;
+            for(let i=0; i<dataArray.length; i++) {
+                const h = (dataArray[i] / 255) * canvas.height;
+                ctx.fillStyle = isSpeaking ? `rgba(0, 242, 255, ${dataArray[i]/255 + 0.1})` : `rgba(188, 19, 254, ${dataArray[i]/512 + 0.05})`;
+                ctx.fillRect(x, canvas.height - h, barWidth - 1, h);
+                x += barWidth;
+            }
+        }
+
+        UI.masterBtn.onclick = async () => {
+            if (!isActive) {
+                await window.audioEngine.init();
+                window.audioEngine.setAgc(true);
+
+                await window.streamManager.init(window.audioEngine.stream);
+                window.speechProcessor.start();
+
+                isActive = true;
+                UI.masterBtn.innerHTML = '<i class="fas fa-stop mr-2"></i> Couper la Station';
+                UI.masterBtn.classList.replace('text-neon-cyan', 'text-red-500');
+                UI.masterBtn.classList.replace('border-neon-cyan/50', 'border-red-500/50');
+
+                UI.statusDot.className = "w-2 h-2 bg-neon-green rounded-full shadow-[0_0_10px_#39ff14]";
+                UI.statusText.innerText = "EN DIRECT";
+                UI.statusText.className = "text-[9px] font-black uppercase text-neon-green";
+
+                startTimer();
+            } else {
+                window.sessionManager.stopSession().then(() => location.reload());
+            }
+        };
+
+        function startTimer() {
+            let s = 0;
+            timerInterval = setInterval(() => {
+                s++;
+                const h = Math.floor(s / 3600);
+                const m = Math.floor((s % 3600) / 60);
+                const sec = s % 60;
+                UI.timer.innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+            }, 1000);
+        }
+
+        function startStatsPoll() {
+            setInterval(async () => {
+                if (!window.sessionManager.currentSession) return;
+                try {
+                    const res = await fetch('api/session.php?action=list');
+                    const data = await res.json();
+                    const session = data.sessions.find(s => s.id === window.sessionManager.currentSession.id);
+                    if (session) {
+                        UI.participants.innerText = session.participants || 0;
+                    }
+                } catch(e) {}
+            }, 5000);
+        }
+
+        function renderHistory() {
+            UI.history.innerHTML = '';
+            window.speechProcessor.history.forEach(item => addHistoryCard(item));
+        }
+
+        function addHistoryCard(item) {
+            const card = document.createElement('div');
+            card.className = 'glass p-4 rounded-xl border-l-4 border-neon-cyan flex flex-col gap-1 transition-all hover:translate-x-1';
+            card.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="text-[9px] font-bold text-gray-500 uppercase">${item.time}</span>
+                    <i class="fas fa-check-circle text-neon-green text-[10px]"></i>
+                </div>
+                <p class="text-white text-[12px] leading-relaxed">${item.text}</p>
+                <p class="text-[9px] text-gray-600 italic mt-1">Brut: ${item.raw.substring(0, 50)}...</p>
+            `;
+            UI.history.prepend(card);
+        }
+
+        UI.cleanupBtn.onclick = () => {
+            if (confirm("Terminer la session et purger les données locales ?")) {
+                window.sessionManager.stopSession().then(() => {
+                    localStorage.removeItem('orateur_pro_ultra_history');
+                    location.reload();
+                });
+            }
+        };
+
+        UI.purgeBtn.onclick = () => {
+            if (confirm("Purger l'historique visuel ?")) {
+                UI.history.innerHTML = '';
+                localStorage.removeItem('orateur_pro_ultra_history');
+                window.speechProcessor.history = [];
+            }
+        };
+    </script>
+</body>
+</html>

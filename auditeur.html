@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="fr" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <title>Orateur Pro - Auditeur Live</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: { fb: '#1877f2', obsidian: '#050506' } } }
+        }
+    </script>
+    <style>
+        * { transition: background-color 0.3s, color 0.3s; -webkit-tap-highlight-color: transparent; }
+        html, body { font-family: 'Inter', sans-serif; height: 100%; width: 100%; margin: 0; padding: 0; overflow: hidden; position: fixed; }
+        body { background-color: #f0f2f5; }
+        .dark body { background-color: #050506; }
+
+        span, p, div, button, label, select { font-size: 13px; }
+        .fas, .fab, .far { font-family: "Font Awesome 6 Free" !important; font-size: inherit !important; }
+
+        .app-container { max-width: 450px; margin: 0 auto; height: 100%; display: flex; flex-direction: column; background-color: #ffffff; position: relative; box-shadow: 0 0 50px rgba(0,0,0,0.1); }
+        .dark .app-container { background-color: #0a0a0b; }
+
+        #discovery-screen { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; background: #ffffff; }
+        .dark #discovery-screen { background: #050506; }
+
+        .preacher-img { width: 180px; height: 180px; border-radius: 40px; object-fit: cover; margin-bottom: 20px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); border: 4px solid #f0f2f5; }
+        .dark .preacher-img { border-color: #1c1e21; }
+
+        .spectrum { display: flex; align-items: flex-end; gap: 4px; height: 35px; margin-bottom: 25px; }
+        .bar { width: 4px; background: #1877f2; border-radius: 4px; animation: bounce 1.2s infinite ease-in-out; }
+        @keyframes bounce { 0%, 100% { height: 8px; opacity: 0.5; } 50% { height: 35px; opacity: 1; } }
+        .bar:nth-child(2) { animation-delay: 0.1s; }
+        .bar:nth-child(3) { animation-delay: 0.2s; }
+        .bar:nth-child(4) { animation-delay: 0.3s; }
+        .bar:nth-child(5) { animation-delay: 0.4s; }
+
+        .header-app { padding: 14px 20px; z-index: 40; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); border-bottom: 1px solid #e4e6eb; display: flex; align-items: center; justify-content: space-between; }
+        .dark .header-app { background: rgba(10, 10, 11, 0.85); border-bottom: 1px solid #242526; }
+
+        .lang-bar { display: flex; overflow-x: auto; gap: 8px; padding: 10px 15px; background: #ffffff; border-bottom: 1px solid #f0f2f5; scrollbar-width: none; }
+        .lang-bar::-webkit-scrollbar { display: none; }
+        .dark .lang-bar { background: #0a0a0b; border-bottom-color: #242526; }
+
+        .lang-chip { flex-shrink: 0; padding: 6px 12px; border-radius: 100px; border: 1px solid #e4e6eb; background: #f0f2f5; font-weight: 700; color: #65676b; display: flex; items-center gap: 6px; }
+        .lang-chip.active { background: #1877f2; color: white; border-color: #1877f2; }
+        .dark .lang-chip { background: #3a3b3c; border-color: #3e4042; color: #e4e6eb; }
+        .dark .lang-chip.active { background: #1877f2; border-color: #1877f2; color: white; }
+
+        .stream-viewport { flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; background: #f0f2f5; scroll-behavior: smooth; }
+        .dark .stream-viewport { background: #050506; }
+        .stream-viewport::-webkit-scrollbar { display: none; }
+
+        .phrase-card { background: #ffffff; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #e4e6eb; box-shadow: 0 1px 2px rgba(0,0,0,0.02); animation: card-in 0.4s ease-out; }
+        .dark .phrase-card { background: #1c1e21; border-color: #2d2f31; }
+        @keyframes card-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .text-main { font-size: 11px !important; font-weight: 600; line-height: 1.6; color: #1c1e21; }
+        .dark .text-main { color: #f1f5f9; }
+
+        .text-orig { font-size: 9px !important; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; display: none; }
+        .text-orig.show { display: block; }
+
+        .side-menu { position: absolute; top: 0; left: -100%; width: 85%; height: 100%; background: #ffffff; z-index: 110; padding: 24px; transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
+        .dark .side-menu { background: #1c1e21; }
+        .side-menu.open { left: 0; }
+
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 105; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+        .overlay.show { opacity: 1; pointer-events: auto; }
+
+        .btn-circle { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: #f0f2f5; color: #1c1e21; }
+        .dark .btn-circle { background: #3a3b3c; color: #e4e6eb; }
+
+        .live-btn { width: 100%; padding: 18px; background: white; border-radius: 20px; border: 1px solid #e4e6eb; display: flex; align-items: center; gap: 15px; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        .dark .live-btn { background: #1c1e21; border-color: #2d2f31; }
+
+        input[type="range"] { width: 100%; background: #f0f2f5; border: 1px solid #dddfe2; border-radius: 12px; padding: 10px 14px; outline: none; font-weight: 600; }
+        .dark input[type="range"] { background: #3a3b3c; border: 1px solid #3e4042; color: white; }
+
+        /* Toast notifications for robustness */
+        #retryToast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #ff9800; color: white; padding: 10px 20px; border-radius: 50px; z-index: 1000; font-weight: bold; display: none; }
+    </style>
+</head>
+<body class="light">
+    <div id="retryToast">Connexion instable... Reconnexion en cours</div>
+    <div class="app-container">
+
+        <!-- Discovery Screen -->
+        <div id="discovery-screen" class="animate-fade-in">
+            <div class="relative mb-8">
+                <div class="preacher-img bg-slate-200 dark:bg-slate-800 flex items-center justify-center overflow-hidden">
+                    <img src="https://th.bing.com/th/id/OIP.aLvakabVGNHxHnpCcsnHMwHaHa?o=7rm=3&rs=1&pid=ImgDetMain&o=7&rm=3" class="w-full h-full object-cover" alt="Prédicateur" onerror="this.parentElement.innerHTML='<i class=\'fas fa-user-tie text-5xl text-slate-400\'></i>'">
+                </div>
+                <div class="absolute -bottom-4 left-1/2 -translate-x-1/2 bg-fb text-white px-5 py-1.5 rounded-full text-[10px] font-black tracking-[0.2em] shadow-2xl">STUDIO</div>
+            </div>
+            <div class="spectrum">
+                <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            </div>
+            <h1 class="text-2xl font-black text-slate-800 dark:text-white mb-6">Orateur Pro</h1>
+            <div id="sessions-list" class="w-full max-h-[300px] overflow-y-auto pr-2 space-y-4">
+                <div class="py-10 text-slate-400 italic">Recherche de sessions en direct...</div>
+            </div>
+        </div>
+
+        <!-- Ended View -->
+        <div id="ended-screen" class="hidden fixed inset-0 z-[120] flex flex-col items-center justify-center p-10 text-center bg-white dark:bg-obsidian">
+            <div class="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mb-6"><i class="fas fa-check text-green-500 text-3xl"></i></div>
+            <h2 class="text-2xl font-black text-slate-800 dark:text-white mb-2">Live terminé</h2>
+            <p class="text-slate-500 mb-6">L'orateur a mis fin à la session.</p>
+            <button onclick="location.reload()" class="bg-fb text-white px-10 py-3.5 rounded-full font-black uppercase tracking-widest shadow-xl shadow-fb/20">Quitter</button>
+        </div>
+
+        <!-- Drawer -->
+        <div id="overlay" class="overlay"></div>
+        <aside id="sideMenu" class="side-menu shadow-2xl">
+            <div class="flex justify-between items-center mb-10">
+                <h2 class="font-black text-2xl tracking-tight">Réglages</h2>
+                <button id="closeMenu" class="btn-circle"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="space-y-6 flex-1 overflow-y-auto">
+                <div class="space-y-2">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Vitesse Vocale</label>
+                    <input type="range" id="rateRange" min="0.5" max="1.5" step="0.1" value="1.1">
+                </div>
+                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl">
+                    <span class="font-bold">Traduction Vocale</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggleTTS" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-slate-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-fb"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl">
+                    <span class="font-bold">Mode Miniature</span>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="toggleOriginal" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-200 dark:bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-fb"></div>
+                    </label>
+                </div>
+                <div class="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 rounded-2xl">
+                    <span class="font-bold">Mode Sombre</span>
+                    <button id="themeToggle" class="btn-circle shadow-sm"><i class="fas fa-moon dark:hidden"></i><i class="fas fa-sun hidden dark:block text-yellow-400"></i></button>
+                </div>
+                <button id="installBtn" class="hidden w-full p-4 bg-fb text-white rounded-2xl font-black uppercase tracking-widest flex items-center justify-center gap-3">
+                    <i class="fas fa-download"></i> Installer l'App
+                </button>
+                <div class="space-y-2 pt-4 border-t border-slate-100 dark:border-white/5">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Volume Direct</label>
+                    <input type="range" id="liveVolume" min="0" max="1" step="0.1" value="0.8">
+                </div>
+            </div>
+        </aside>
+
+        <!-- Header -->
+        <header class="header-app">
+            <button id="openMenu" class="btn-circle shadow-sm"><i class="fas fa-bars-staggered"></i></button>
+            <div class="flex flex-col items-center">
+                <div class="flex items-center gap-2">
+                    <span class="font-black text-[12px] tracking-[0.15em] text-fb uppercase">Orateur Pro</span>
+                    <span id="studioBadge" class="bg-fb/10 text-fb px-1.5 py-0.5 rounded text-[8px] font-black tracking-widest border border-fb/20 transition-all duration-500">STUDIO QUALITY</span>
+                </div>
+                <div id="speaking-indicator" class="flex items-center gap-1 text-fb font-bold text-[9px] uppercase opacity-0 transition-opacity">
+                    <div class="w-1.5 h-1.5 bg-fb rounded-full animate-ping"></div> L'ORATEUR PARLE
+                </div>
+            </div>
+            <div class="btn-circle border border-fb/10"><i class="fas fa-volume-up text-fb text-xs"></i></div>
+        </header>
+
+        <!-- Language Selector -->
+        <div class="lang-bar" id="langBar">
+            <button class="lang-chip active" data-lang="fr-FR"><span>🇫🇷</span> Français</button>
+            <button class="lang-chip" data-lang="en-US"><span>🇺🇸</span> English</button>
+            <button class="lang-chip" data-lang="es-ES"><span>🇪🇸</span> Español</button>
+            <button class="lang-chip" data-lang="de-DE"><span>🇩🇪</span> Deutsch</button>
+            <button class="lang-chip" data-lang="it-IT"><span>🇮🇹</span> Italiano</button>
+            <button class="lang-chip" data-lang="pt-PT"><span>🇵🇹</span> Português</button>
+            <button class="lang-chip" data-lang="zh-CN"><span>🇨🇳</span> 中文</button>
+        </div>
+
+        <main class="stream-viewport" id="scrollBox">
+            <div id="stream-content" class="w-full"></div>
+            <div id="interim-block" class="phrase-card opacity-50 hidden italic border-fb/20 border-dashed text-fb"></div>
+        </main>
+    </div>
+
+    <script>
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+
+        const UI = {
+            discovery: document.getElementById('discovery-screen'),
+            sessions: document.getElementById('sessions-list'),
+            ended: document.getElementById('ended-screen'),
+            content: document.getElementById('stream-content'),
+            interim: document.getElementById('interim-block'),
+            scroll: document.getElementById('scrollBox'),
+            speaking: document.getElementById('speaking-indicator'),
+            langBar: document.getElementById('langBar'),
+            tts: document.getElementById('toggleTTS'),
+            orig: document.getElementById('toggleOriginal'),
+            vol: document.getElementById('liveVolume'),
+            rate: document.getElementById('rateRange'),
+            menu: document.getElementById('sideMenu'),
+            overlay: document.getElementById('overlay'),
+            retryToast: document.getElementById('retryToast')
+        };
+
+        let currentSessionId = null;
+        let lastTS = 0;
+        let charIndex = 0;
+        let selectedLang = "fr-FR";
+        let retryCount = 0;
+        const MAX_RETRIES = 15;
+        const auditorId = 'aud_' + Math.random().toString(36).substr(2, 6);
+        const synth = window.speechSynthesis;
+        const rtc = { pc: null, dc: null, audio: new Audio(), candidatesAdded: new Set() };
+
+        // Lang selection logic
+        UI.langBar.querySelectorAll('.lang-chip').forEach(chip => {
+            chip.onclick = () => {
+                UI.langBar.querySelectorAll('.lang-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                selectedLang = chip.dataset.lang;
+                charIndex = 0;
+            };
+        });
+
+        let lastSessionsJSON = "";
+        async function fetchSessions() {
+            if (currentSessionId) return;
+            try {
+                const res = await fetch('post.php?action=get_sessions&t=' + Date.now());
+                const data = await res.json();
+                const sessionsJSON = JSON.stringify(data.sessions);
+                if (sessionsJSON === lastSessionsJSON) return;
+                lastSessionsJSON = sessionsJSON;
+
+                if (data.sessions?.length > 0) {
+                    UI.sessions.innerHTML = '';
+                    const fragment = document.createDocumentFragment();
+                    data.sessions.forEach(s => {
+                        const btn = document.createElement('button');
+                        btn.className = 'live-btn';
+                        btn.onclick = () => joinSession(s.id);
+
+                        const iconDiv = document.createElement('div');
+                        iconDiv.className = 'w-12 h-12 bg-fb rounded-2xl flex items-center justify-center text-white shadow-lg';
+                        iconDiv.innerHTML = '<i class="fas fa-play"></i>';
+
+                        const infoDiv = document.createElement('div');
+                        infoDiv.className = 'flex-1';
+
+                        const titleDiv = document.createElement('div');
+                        titleDiv.className = 'font-black text-slate-800 dark:text-white';
+                        const displayId = s.id.includes('_') ? s.id.split('_')[1] : s.id;
+                        titleDiv.textContent = `DIRECT #${displayId}`;
+
+                        const subDiv = document.createElement('div');
+                        subDiv.className = 'text-[9px] text-slate-400 uppercase font-black tracking-widest';
+                        subDiv.textContent = 'Cliquer pour rejoindre';
+
+                        infoDiv.appendChild(titleDiv);
+                        infoDiv.appendChild(subDiv);
+                        btn.appendChild(iconDiv);
+                        btn.appendChild(infoDiv);
+                        fragment.appendChild(btn);
+                    });
+                    UI.sessions.appendChild(fragment);
+                } else {
+                    UI.sessions.innerHTML = '<div class="py-10 text-slate-400 italic">Aucun live disponible...</div>';
+                }
+            } catch(e) {}
+        }
+        setInterval(fetchSessions, 3000);
+
+        window.joinSession = (id) => {
+            if (!currentSessionId) {
+                history.pushState(null, null, location.href);
+                window.onpopstate = () => history.go(1);
+            }
+            currentSessionId = id;
+            retryCount = 0;
+            UI.discovery.style.display = 'none';
+            const unlock = new SpeechSynthesisUtterance("");
+            synth.speak(unlock);
+            rtc.audio.play().catch(()=>{});
+            initRTCReceiver();
+            pollLive();
+        };
+
+        async function pollLive() {
+            if (!currentSessionId) return;
+            try {
+                // High-priority check for session existence
+                const res = await fetch(`live_${currentSessionId}.json?t=` + Date.now(), { cache: 'no-store' });
+
+                if (!res.ok) {
+                    // Immediate cross-verification with central registry
+                    const sessionCheck = await fetch('post.php?action=get_sessions&t=' + Date.now());
+                    const sData = await sessionCheck.json();
+                    if (!sData.sessions || !sData.sessions.some(s => s.id === currentSessionId)) {
+                        disconnect();
+                        return;
+                    }
+                    throw new Error("Temporary connection glitch");
+                }
+
+                const data = await res.json();
+                retryCount = 0;
+                UI.retryToast.style.display = 'none';
+
+                if (data.is_live === false) {
+                    disconnect();
+                    return;
+                }
+
+                if (data.timestamp > lastTS) {
+                    processIncomingText(data);
+                }
+                setTimeout(pollLive, 300);
+            } catch(e) {
+                retryCount++;
+                if (retryCount > 3) UI.retryToast.style.display = 'block';
+                if (retryCount % 3 === 0 || retryCount >= MAX_RETRIES) {
+                    try {
+                        const regRes = await fetch('post.php?action=get_sessions&t=' + Date.now());
+                        const regData = await regRes.json();
+                        if (!regData.sessions || !regData.sessions.some(s => s.id === currentSessionId)) { disconnect(); return; }
+                    } catch(err) {
+                        if (retryCount >= MAX_RETRIES) { disconnect(); return; }
+                    }
+                }
+                setTimeout(pollLive, retryCount >= MAX_RETRIES ? 2000 : 500);
+            }
+        }
+
+        async function processIncomingText(data) {
+            lastTS = data.timestamp;
+            UI.speaking.classList.toggle('opacity-100', data.is_speaking);
+            UI.speaking.classList.toggle('opacity-0', !data.is_speaking);
+
+            const translated = await fastTranslate(data.text);
+            if (data.type === 'interim') {
+                UI.interim.classList.remove('hidden');
+                UI.interim.textContent = translated;
+                speakIncremental(translated);
+            } else if (data.text) {
+                UI.interim.classList.add('hidden');
+                const card = document.createElement('div');
+                card.className = 'phrase-card';
+
+                const origDiv = document.createElement('div');
+                origDiv.className = 'text-orig' + (UI.orig.checked ? ' show' : '');
+                origDiv.textContent = data.text;
+
+                const mainDiv = document.createElement('div');
+                mainDiv.className = 'text-main';
+                mainDiv.textContent = translated;
+
+                card.appendChild(origDiv);
+                card.appendChild(mainDiv);
+                UI.content.appendChild(card);
+
+                speakIncremental(translated, true);
+                charIndex = 0;
+            }
+            UI.scroll.scrollTop = UI.scroll.scrollHeight;
+        }
+
+        function disconnect() {
+            if (!currentSessionId) return;
+            currentSessionId = null;
+            UI.retryToast.style.display = 'none';
+            UI.ended.classList.remove('hidden');
+            if (rtc.pc) rtc.pc.close();
+            rtc.audio.pause();
+            synth.cancel();
+            ttsQueue = [];
+            isSpeaking = false;
+        }
+
+        let ttsQueue = [];
+        let isSpeaking = false;
+
+        function speakIncremental(text, isFinal = false) {
+            if (!UI.tts.checked || !text?.trim()) return;
+
+            const newPart = text.substring(charIndex).trim();
+            // Regex to split while keeping the punctuation
+            const segments = newPart.split(/([.!?]+(?:\s|$))/g);
+
+            let currentPhrase = "";
+            let segmentsConsumed = 0;
+
+            for (let i = 0; i < segments.length; i += 2) {
+                const content = segments[i];
+                const punctuation = segments[i+1] || "";
+
+                if (punctuation || (isFinal && i === segments.length - 1)) {
+                    const toSpeak = (content + punctuation).trim();
+                    if (toSpeak.length > 2) {
+                        ttsQueue.push({ text: toSpeak, lang: selectedLang });
+                        currentPhrase += content + punctuation;
+                        segmentsConsumed = i + 2;
+                    }
+                }
+            }
+
+            if (segmentsConsumed > 0) {
+                // Approximate charIndex update to skip consumed sentences
+                charIndex += currentPhrase.length;
+                if (!isSpeaking) playNextInQueue();
+            } else if (isFinal && newPart.length > 0) {
+                ttsQueue.push({ text: newPart, lang: selectedLang });
+                charIndex = 0;
+                if (!isSpeaking) playNextInQueue();
+            }
+        }
+
+        function playNextInQueue() {
+            if (ttsQueue.length === 0) {
+                isSpeaking = false;
+                fadeAudio(rtc.audio, UI.vol.value);
+                document.getElementById('studioBadge')?.classList.remove('bg-fb', 'text-white', 'shadow-[0_0_10px_rgba(24,119,242,0.5)]');
+                return;
+            }
+
+            isSpeaking = true;
+            document.getElementById('studioBadge')?.classList.add('bg-fb', 'text-white', 'shadow-[0_0_10px_rgba(24,119,242,0.5)]');
+            const item = ttsQueue.shift();
+
+            // Expert Diction: Ensure text is clean and well-structured for the "Professor" tone
+            const cleanText = item.text.replace(/([.!?])\1+/g, '$1').trim();
+            if (!cleanText) return playNextInQueue();
+
+            const utt = new SpeechSynthesisUtterance(cleanText);
+            utt.lang = item.lang;
+
+            const voices = synth.getVoices();
+            // Oratory Expertise: Prioritize voices known for clear diction and professorial tone
+            const preferred = voices.find(v => v.lang === utt.lang && (v.name.includes('Neural') || v.name.includes('Natural'))) ||
+                              voices.find(v => v.lang === utt.lang && (v.name.includes('Google') || v.name.includes('Premium'))) ||
+                              voices.find(v => v.lang.startsWith(utt.lang.split('-')[0])) || voices[0];
+
+            utt.voice = preferred;
+
+            // Professor Logic: Deliberate articulation. Slightly slower rate (0.95 - 1.05) yields highest perceived expertise.
+            const userRate = parseFloat(UI.rate.value);
+            // We clamp the "Expert" rate to be stable and authoritative
+            utt.rate = Math.max(0.9, Math.min(1.1, userRate));
+
+            // Mastery of Pitch: A stable, slightly lower pitch often conveys more authority
+            utt.pitch = 1.0;
+            utt.volume = 1.0;
+
+            // Professional Ducking Chain
+            utt.onstart = () => fadeAudio(rtc.audio, UI.vol.value * 0.05); // Near-silence for the orator to let the "Professor" lead
+            utt.onend = () => {
+                // Thoughtful pause between sentences to simulate intellectual reflection
+                setTimeout(playNextInQueue, 400);
+            };
+            utt.onerror = () => playNextInQueue();
+
+            synth.speak(utt);
+        }
+
+        function fadeAudio(audioEl, targetVol) {
+            const step = 0.05;
+            const interval = 30;
+            const timer = setInterval(() => {
+                if (Math.abs(audioEl.volume - targetVol) < step) {
+                    audioEl.volume = targetVol;
+                    clearInterval(timer);
+                } else {
+                    audioEl.volume += (audioEl.volume < targetVol ? step : -step);
+                }
+            }, interval);
+        }
+
+        async function fastTranslate(text) {
+            const target = selectedLang.split('-')[0];
+            if (target === 'fr' || !text) return text;
+            try {
+                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=fr&tl=${target}&dt=t&q=${encodeURIComponent(text)}`);
+                const data = await res.json();
+                return data[0].map(x => x[0]).join('');
+            } catch (e) { return text; }
+        }
+
+        async function initRTCReceiver() {
+            if (rtc.pc) rtc.pc.close();
+            rtc.pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+
+            // Transcription Data Channel (P2P Instant Text)
+            rtc.dc = rtc.pc.createDataChannel("transcription", { negotiated: true, id: 0 });
+            rtc.dc.onmessage = (e) => {
+                const data = JSON.parse(e.data);
+                if (data.timestamp > lastTS) processIncomingText(data);
+            };
+
+            rtc.pc.ontrack = (e) => { rtc.audio.srcObject = e.streams[0]; rtc.audio.play(); };
+            rtc.pc.onicecandidate = (e) => { if (e.candidate) fetch(`signaling.php?action=push&role=auditor&session_id=${currentSessionId}`, { method: 'POST', body: JSON.stringify({ candidate: e.candidate, auditor_id: auditorId }) }); };
+            const rtcPoll = setInterval(async () => {
+                if (!currentSessionId) { clearInterval(rtcPoll); return; }
+                try {
+                    const res = await fetch(`signaling.php?session_id=${currentSessionId}`);
+                    const sig = await res.json();
+                    if (sig.offer && rtc.pc.signalingState === 'stable') {
+                        await rtc.pc.setRemoteDescription(new RTCSessionDescription(sig.offer));
+                        const ans = await rtc.pc.createAnswer();
+                        await rtc.pc.setLocalDescription(ans);
+                        fetch(`signaling.php?action=push&role=auditor&session_id=${currentSessionId}`, { method: 'POST', body: JSON.stringify({ answer: ans, auditor_id: auditorId }) });
+                    }
+                    if (sig.orator_candidates && rtc.pc.remoteDescription) {
+                        sig.orator_candidates.forEach(c => {
+                            const cStr = JSON.stringify(c);
+                            if (c && !rtc.candidatesAdded.has(cStr)) { rtc.pc.addIceCandidate(new RTCIceCandidate(c)).catch(()=>{}); rtc.candidatesAdded.add(cStr); }
+                        });
+                    }
+                } catch(e) {}
+            }, 3000);
+        }
+
+        UI.vol.oninput = () => rtc.audio.volume = UI.vol.value;
+        document.getElementById('openMenu').onclick = () => { UI.menu.classList.add('open'); UI.overlay.classList.add('show'); };
+        document.getElementById('closeMenu').onclick = UI.overlay.onclick = () => { UI.menu.classList.remove('open'); UI.overlay.classList.remove('show'); };
+        document.getElementById('themeToggle').onclick = () => document.documentElement.classList.toggle('dark');
+
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.classList.remove('hidden');
+        });
+        installBtn.onclick = async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            if (outcome === 'accepted') installBtn.classList.add('hidden');
+            deferredPrompt = null;
+        };
+
+        fetchSessions();
+    </script>
+</body>
+</html>
