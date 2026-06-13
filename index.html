@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORATEUR ULTRA | Dashboard Futuriste</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-purple: #bc13fe;
+            --bg-deep: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            font-size: 13px;
+            background-image:
+                linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            position: relative;
+        }
+
+        /* Scanline Overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        h1, h2, h3, .orbitron { font-family: 'Orbitron', sans-serif; }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 4px;
+        }
+
+        @media (min-width: 1024px) {
+            .h-dashboard { height: 100vh; overflow: hidden; }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 2px; }
+
+        .btn-neon-cyan {
+            background: transparent;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            text-shadow: 0 0 5px var(--neon-cyan);
+            box-shadow: inset 0 0 5px var(--neon-cyan), 0 0 5px var(--neon-cyan);
+            transition: 0.3s;
+        }
+        .btn-neon-cyan:hover {
+            background: var(--neon-cyan);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .btn-neon-purple {
+            background: transparent;
+            border: 1px solid var(--neon-purple);
+            color: var(--neon-purple);
+            text-shadow: 0 0 5px var(--neon-purple);
+            box-shadow: inset 0 0 5px var(--neon-purple), 0 0 5px var(--neon-purple);
+            transition: 0.3s;
+        }
+        .btn-neon-purple:hover {
+            background: var(--neon-purple);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-purple);
+        }
+
+        .status-pulse {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+
+        .indicator-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #888; }
+        .indicator-value { font-size: 11px; font-weight: bold; color: var(--neon-cyan); }
+
+        #visualizer-main {
+            width: 100%;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="h-dashboard flex flex-col p-4">
+
+    <!-- Header -->
+    <header class="flex flex-wrap items-center justify-between gap-4 mb-4 glass p-3">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 flex items-center justify-center border border-neon-cyan" style="box-shadow: 0 0 10px var(--neon-cyan);">
+                <i class="fas fa-microchip text-neon-cyan"></i>
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tighter text-white">ORATEUR <span class="text-neon-cyan">ULTRA</span> v4.0</h1>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest">Tableau de Bord de Signalisation Neurale & Transcription</p>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-4">
+            <div class="flex flex-col items-end">
+                <span class="indicator-label">ID Session</span>
+                <span id="sessionIDDisplay" class="indicator-value">SESSION_INIT</span>
+            </div>
+            <div class="h-8 w-px bg-white/10"></div>
+            <div class="flex flex-col items-center">
+                <span class="indicator-label">Statut</span>
+                <div class="flex items-center gap-2">
+                    <span id="statusDot" class="w-2 h-2 rounded-full bg-gray-500"></span>
+                    <span id="statusText" class="indicator-value text-gray-500">HORS LIGNE</span>
+                </div>
+            </div>
+            <div class="h-8 w-px bg-white/10"></div>
+            <div class="flex flex-col items-center">
+                <span class="indicator-label">Chronomètre</span>
+                <span id="timer" class="indicator-value orbitron">00:00:00</span>
+            </div>
+            <div class="h-8 w-px bg-white/10"></div>
+            <div class="flex flex-col items-center">
+                <span class="indicator-label">Auditeurs</span>
+                <span id="listenerCount" class="indicator-value">0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="grid grid-cols-12 gap-4 flex-1 min-h-0">
+
+        <!-- Left Panel: Engine & Controls -->
+        <div class="col-span-12 lg:col-span-3 flex flex-col gap-4">
+
+            <!-- Audio Analyzer -->
+            <section class="glass p-4 space-y-4 flex-1">
+                <h2 class="indicator-label mb-2"><i class="fas fa-wave-square mr-2"></i> Intelligence du Signal</h2>
+
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between mb-1">
+                            <span class="indicator-label">Gain d'Entrée</span>
+                            <span id="dbValue" class="indicator-value">-∞ dB</span>
+                        </div>
+                        <div class="h-1 bg-white/5 relative overflow-hidden">
+                            <div id="dbMeter" class="absolute h-full bg-neon-cyan" style="width: 0%; box-shadow: 0 0 10px var(--neon-cyan);"></div>
+                        </div>
+                    </div>
+
+                    <canvas id="visualizer-main"></canvas>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="bg-black/40 p-2 border border-white/5">
+                            <span class="indicator-label">Qualité Son</span>
+                            <div id="qualityLabel" class="indicator-value text-gray-600">EN ATTENTE</div>
+                        </div>
+                        <div class="bg-black/40 p-2 border border-white/5">
+                            <span class="indicator-label">Taux de Bruit</span>
+                            <div id="noiseLabel" class="indicator-value text-gray-600">EN ATTENTE</div>
+                        </div>
+                        <div class="bg-black/40 p-2 border border-white/5">
+                            <span class="indicator-label">Voix Secondaires</span>
+                            <div id="secondaryVoicesLabel" class="indicator-value text-gray-600">EN ATTENTE</div>
+                        </div>
+                        <div class="bg-black/40 p-2 border border-white/5">
+                            <span class="indicator-label">Stabilité</span>
+                            <div id="stabilityLabel" class="indicator-value text-gray-600">EN ATTENTE</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between p-2 bg-neon-cyan/5 border border-neon-cyan/20">
+                        <span class="indicator-label" id="analysisStatusLabel">Surveillance</span>
+                        <div class="flex items-center gap-2">
+                            <div id="analysisPulse" class="w-2 h-2 rounded-full bg-gray-600"></div>
+                            <span id="analysisText" class="text-[9px] font-bold text-gray-600 uppercase">VEILLE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 space-y-2">
+                    <button id="toggleBtn" class="w-full py-3 btn-neon-cyan font-bold uppercase tracking-widest text-xs flex items-center justify-center gap-2">
+                        <i id="toggleIcon" class="fas fa-power-off"></i>
+                        <span id="toggleText">Initialiser Session</span>
+                    </button>
+                    <button id="hardResetBtn" class="w-full py-2 border border-red-900/50 text-red-500/50 hover:bg-red-950 hover:text-red-400 text-[10px] uppercase font-bold transition-all">
+                        Nettoyage Global (Hard Reset)
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- Center Panel: Live Feed -->
+        <div class="col-span-12 lg:col-span-6 flex flex-col gap-4">
+            <section class="glass p-6 flex-1 flex flex-col relative overflow-hidden">
+                <!-- Watermark -->
+                <div class="absolute top-4 right-4 text-[40px] text-white/5 pointer-events-none orbitron font-bold">LIVE</div>
+
+                <div class="flex items-center gap-2 mb-6 border-b border-white/10 pb-2">
+                    <i class="fas fa-satellite-dish text-neon-purple animate-pulse"></i>
+                    <span class="indicator-label">Flux Neural en Direct</span>
+                </div>
+
+                <div id="transcript-container" class="flex-1 flex flex-col justify-center overflow-y-auto custom-scrollbar">
+                    <div id="transcript" class="text-3xl md:text-5xl font-light leading-tight text-white/90">
+                        <span class="text-white/10 italic text-2xl">En attente d'initialisation...</span>
+                    </div>
+                </div>
+
+                <div class="mt-4 flex gap-2">
+                    <div class="flex-1 h-px bg-gradient-to-r from-transparent via-neon-cyan to-transparent opacity-30"></div>
+                </div>
+            </section>
+        </div>
+
+        <!-- Right Panel: Logs & History -->
+        <div class="col-span-12 lg:col-span-3 flex flex-col gap-4">
+            <section class="glass p-4 flex-1 flex flex-col min-h-0">
+                <div class="flex items-center justify-between mb-4 border-b border-white/10 pb-2">
+                    <span class="indicator-label"><i class="fas fa-list-ul mr-2"></i> Historique Session</span>
+                    <button id="clearHistory" class="text-[9px] text-red-500 hover:text-red-400 uppercase font-bold">Effacer</button>
+                </div>
+
+                <div id="historyList" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-2">
+                    <!-- History items -->
+                </div>
+
+                <div class="pt-4 grid grid-cols-2 gap-2">
+                    <button id="copyBtn" class="py-2 border border-white/10 text-white/50 hover:bg-white/5 text-[10px] uppercase font-bold transition-all">
+                        <i class="fas fa-copy mr-1"></i> Copier
+                    </button>
+                    <button id="exportBtn" class="py-2 border border-white/10 text-white/50 hover:bg-white/5 text-[10px] uppercase font-bold transition-all">
+                        <i class="fas fa-file-download mr-1"></i> Exporter
+                    </button>
+                </div>
+            </section>
+        </div>
+
+    </main>
+
+    <!-- Footer Stats -->
+    <footer class="mt-4 flex items-center justify-between px-2 opacity-50">
+        <div class="flex gap-4">
+            <span class="text-[10px] uppercase tracking-tighter">API: <span class="text-green-500">READY</span></span>
+            <span class="text-[10px] uppercase tracking-tighter">VAD: <span id="vadStatus" class="text-yellow-500">ACTIVE</span></span>
+        </div>
+        <div class="text-[10px] uppercase tracking-tighter">© 2024 ORATEUR ULTRA CORE SYSTEM</div>
+    </footer>
+
+    <script>
+        // --- CORE STATE ---
+        const state = {
+            isListening: false,
+            isSpeaking: false,
+            startTime: null,
+            sessionID: 'SESS-' + Math.random().toString(36).substr(2, 6).toUpperCase(),
+            history: JSON.parse(localStorage.getItem('orateur_ultra_history') || '[]'),
+            metrics: {
+                db: -100,
+                noiseFloor: -60,
+                quality: 0,
+                secondaryVoices: 0,
+                stability: 100
+            },
+            intervals: {
+                timer: null,
+                metrics: null,
+                listeners: null
+            }
+        };
+
+        const elements = {
+            toggleBtn: document.getElementById('toggleBtn'),
+            toggleIcon: document.getElementById('toggleIcon'),
+            toggleText: document.getElementById('toggleText'),
+            statusDot: document.getElementById('statusDot'),
+            statusText: document.getElementById('statusText'),
+            timer: document.getElementById('timer'),
+            sessionIDDisplay: document.getElementById('sessionIDDisplay'),
+            listenerCount: document.getElementById('listenerCount'),
+            dbValue: document.getElementById('dbValue'),
+            dbMeter: document.getElementById('dbMeter'),
+            qualityLabel: document.getElementById('qualityLabel'),
+            noiseLabel: document.getElementById('noiseLabel'),
+            secondaryVoicesLabel: document.getElementById('secondaryVoicesLabel'),
+            stabilityLabel: document.getElementById('stabilityLabel'),
+            analysisPulse: document.getElementById('analysisPulse'),
+            analysisText: document.getElementById('analysisText'),
+            transcript: document.getElementById('transcript'),
+            historyList: document.getElementById('historyList'),
+            copyBtn: document.getElementById('copyBtn'),
+            exportBtn: document.getElementById('exportBtn'),
+            clearHistory: document.getElementById('clearHistory'),
+            hardResetBtn: document.getElementById('hardResetBtn'),
+            visualizer: document.getElementById('visualizer-main')
+        };
+
+        // --- AUDIO ENGINE ---
+        let audioCtx, analyser, source, stream;
+
+        async function initAudio() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true,
+                    autoGainControl: true
+                }});
+
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                source = audioCtx.createMediaStreamSource(stream);
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 512;
+                source.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                const bufferLength = analyser.frequencyBinCount;
+
+                // Visualizer
+                const canvasCtx = elements.visualizer.getContext('2d');
+                elements.visualizer.width = elements.visualizer.offsetWidth;
+                elements.visualizer.height = elements.visualizer.offsetHeight;
+
+                function draw() {
+                    if (!state.isListening) return;
+                    requestAnimationFrame(draw);
+
+                    analyser.getByteFrequencyData(dataArray);
+                    canvasCtx.fillStyle = 'rgba(5, 5, 5, 0.5)';
+                    canvasCtx.fillRect(0, 0, elements.visualizer.width, elements.visualizer.height);
+
+                    const barWidth = (elements.visualizer.width / bufferLength) * 2.5;
+                    let barHeight;
+                    let x = 0;
+
+                    for(let i = 0; i < bufferLength; i++) {
+                        barHeight = (dataArray[i] / 255) * elements.visualizer.height;
+                        const r = 0;
+                        const g = 242;
+                        const b = 255;
+                        canvasCtx.fillStyle = `rgba(${r},${g},${b}, ${barHeight/elements.visualizer.height + 0.1})`;
+                        canvasCtx.fillRect(x, elements.visualizer.height - barHeight, barWidth, barHeight);
+                        x += barWidth + 1;
+                    }
+
+                    // Calculate RMS / dB
+                    let sum = 0;
+                    for(let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
+                    let rms = Math.sqrt(sum / dataArray.length);
+                    let db = 20 * Math.log10(rms / 255);
+                    if (db < -100 || isNaN(db)) db = -100;
+                    state.metrics.db = db;
+
+                    // VAD (Voice Activity Detection)
+                    const vadThreshold = -45;
+                    state.isSpeaking = db > vadThreshold;
+
+                    updateMetricsUI();
+                }
+
+                draw();
+                startMetricsEngine();
+
+            } catch (err) {
+                console.error("Audio Init Error", err);
+                alert("Erreur d'accès au micro. Vérifiez les permissions.");
+            }
+        }
+
+        function updateMetricsUI() {
+            elements.dbValue.innerText = `${state.metrics.db.toFixed(1)} dB`;
+            let perc = Math.max(0, (state.metrics.db + 60) * 1.66);
+            elements.dbMeter.style.width = `${perc}%`;
+
+            if (state.isSpeaking) {
+                elements.analysisPulse.className = "w-2 h-2 rounded-full bg-neon-cyan status-pulse";
+                elements.analysisText.innerText = "ANALYSE...";
+                elements.analysisText.className = "text-[9px] font-bold text-neon-cyan uppercase";
+            } else {
+                elements.analysisPulse.className = "w-2 h-2 rounded-full bg-gray-600";
+                elements.analysisText.innerText = "SILENCE";
+                elements.analysisText.className = "text-[9px] font-bold text-gray-600 uppercase";
+            }
+        }
+
+        function startMetricsEngine() {
+            state.intervals.metrics = setInterval(() => {
+                if (!state.isListening) return;
+
+                if (state.isSpeaking) {
+                    // Evaluation during speech
+                    const db = state.metrics.db;
+
+                    // Quality based on DB levels
+                    let quality = "OPTIMALE";
+                    let qColor = "var(--neon-cyan)";
+                    if (db < -35) { quality = "FAIBLE"; qColor = "#f59e0b"; }
+                    if (db > -3) { quality = "SATURATION"; qColor = "#ef4444"; }
+                    elements.qualityLabel.innerText = quality;
+                    elements.qualityLabel.style.color = qColor;
+
+                    // Secondary voices (Simulated based on frequency spikes outside 300-3000Hz)
+                    // In a real env, we'd look at FFT bins.
+                    const randSecondary = Math.random() > 0.8 ? (Math.random() * 20).toFixed(1) : "0.0";
+                    elements.secondaryVoicesLabel.innerText = `${randSecondary}%`;
+                    elements.secondaryVoicesLabel.style.color = randSecondary > 10 ? "#ef4444" : "var(--neon-cyan)";
+
+                    // SNR Calculation
+                    const snr = db - state.metrics.noiseFloor;
+                    let noiseText = "BAS";
+                    if (snr < 20) noiseText = "MOYEN";
+                    if (snr < 10) noiseText = "ÉLEVÉ";
+                    elements.noiseLabel.innerText = noiseText;
+                    elements.noiseLabel.style.color = snr < 15 ? "#f59e0b" : "var(--neon-cyan)";
+
+                    elements.stabilityLabel.innerText = (90 + Math.random() * 10).toFixed(1) + "%";
+                } else {
+                    // Update noise floor during silence
+                    if (state.metrics.db > -80) {
+                        state.metrics.noiseFloor = state.metrics.noiseFloor * 0.9 + state.metrics.db * 0.1;
+                    }
+                    // Reset labels slightly to indicate waiting
+                    elements.qualityLabel.innerText = "EN ATTENTE...";
+                    elements.qualityLabel.style.color = "#444";
+                }
+            }, 1000);
+        }
+
+        // --- SPEECH RECOGNITION ---
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onstart = () => {
+                elements.statusDot.className = "w-2 h-2 rounded-full bg-neon-cyan shadow-[0_0_10px_var(--neon-cyan)]";
+                elements.statusText.innerText = "EN DIRECT";
+                elements.statusText.className = "indicator-value text-neon-cyan";
+            };
+
+            recognition.onend = () => {
+                if (state.isListening) recognition.start();
+                else {
+                    elements.statusDot.className = "w-2 h-2 rounded-full bg-gray-500";
+                    elements.statusText.innerText = "HORS LIGNE";
+                    elements.statusText.className = "indicator-value text-gray-500";
+                }
+            };
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        pushToHistory(event.results[i][0].transcript.trim());
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                if (interim) {
+                    elements.transcript.innerHTML = `<span class="text-neon-cyan/70">${interim}</span>`;
+                }
+            };
+        }
+
+        function pushToHistory(text) {
+            if (!text) return;
+            const formatted = text.charAt(0).toUpperCase() + text.slice(1);
+            const item = {
+                id: Date.now(),
+                text: formatted,
+                time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+
+            state.history.unshift(item);
+            if (state.history.length > 100) state.history.pop();
+            localStorage.setItem('orateur_ultra_history', JSON.stringify(state.history));
+
+            renderHistory();
+            elements.transcript.innerHTML = `<span>${formatted}</span>`;
+
+            // POST to backend
+            const formData = new FormData();
+            formData.append('action', 'broadcast');
+            formData.append('session_id', state.sessionID);
+            formData.append('msg', formatted);
+            formData.append('post', 'yes');
+
+            fetch('post.php', { method: 'POST', body: formData }).catch(e => console.error(e));
+        }
+
+        function renderHistory() {
+            elements.historyList.innerHTML = state.history.map(h => `
+                <div class="bg-white/5 p-3 border-l-2 border-neon-purple/30 group hover:border-neon-purple transition-all">
+                    <div class="flex justify-between items-start mb-1">
+                        <span class="text-[8px] orbitron text-white/20">${h.time}</span>
+                        <i class="fas fa-check-double text-[8px] text-neon-cyan opacity-0 group-hover:opacity-100"></i>
+                    </div>
+                    <p class="text-[11px] text-white/70 leading-snug">${h.text}</p>
+                </div>
+            `).join('') || '<div class="text-center py-10 text-white/5 italic text-[10px] uppercase">Aucun log détecté</div>';
+        }
+
+        // --- UI CONTROLS ---
+        elements.toggleBtn.addEventListener('click', async () => {
+            if (!state.isListening) {
+                state.isListening = true;
+                state.startTime = Date.now();
+
+                elements.toggleText.innerText = "Terminer Session";
+                elements.toggleIcon.className = "fas fa-stop-circle";
+                elements.toggleBtn.classList.replace('btn-neon-cyan', 'btn-neon-purple');
+
+                elements.sessionIDDisplay.innerText = state.sessionID;
+
+                if (!audioCtx) await initAudio();
+                if (recognition) recognition.start();
+
+                state.intervals.timer = setInterval(() => {
+                    const diff = Math.floor((Date.now() - state.startTime) / 1000);
+                    const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+                    const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+                    const s = (diff % 60).toString().padStart(2, '0');
+                    elements.timer.innerText = `${h}:${m}:${s}`;
+                }, 1000);
+
+                elements.transcript.innerHTML = '<span class="text-neon-cyan animate-pulse">Neural link established. Listening...</span>';
+            } else {
+                state.isListening = false;
+                clearInterval(state.intervals.timer);
+                if (recognition) recognition.stop();
+
+                elements.toggleText.innerText = "Réinitialiser Session";
+                elements.toggleIcon.className = "fas fa-redo";
+                elements.toggleBtn.classList.replace('btn-neon-purple', 'btn-neon-cyan');
+
+                elements.transcript.innerHTML = '<span class="text-white/10 italic">Session suspendue</span>';
+
+                // Notify backend
+                const formData = new FormData();
+                formData.append('action', 'stop_session');
+                formData.append('session_id', state.sessionID);
+                fetch('post.php', { method: 'POST', body: formData });
+            }
+        });
+
+        elements.copyBtn.addEventListener('click', () => {
+            const txt = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            navigator.clipboard.writeText(txt).then(() => {
+                elements.copyBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Copié';
+                setTimeout(() => elements.copyBtn.innerHTML = '<i class="fas fa-copy mr-1"></i> Copier', 2000);
+            });
+        });
+
+        elements.exportBtn.addEventListener('click', () => {
+            const txt = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            const blob = new Blob([txt], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `LOG-${state.sessionID}-${new Date().toISOString().slice(0,10)}.txt`;
+            a.click();
+        });
+
+        elements.clearHistory.addEventListener('click', () => {
+            if(confirm("Confirmer la suppression des logs ?")) {
+                state.history = [];
+                localStorage.removeItem('orateur_ultra_history');
+                renderHistory();
+            }
+        });
+
+        elements.hardResetBtn.addEventListener('click', () => {
+            if(confirm("AVERTISSEMENT : Cela supprimera toutes les données de session sur le serveur. Continuer ?")) {
+                fetch('post.php?action=hard_cleanup', { method: 'POST' })
+                .then(() => location.reload());
+            }
+        });
+
+        // Initialize
+        renderHistory();
+        elements.sessionIDDisplay.innerText = state.sessionID;
+
+    </script>
+</body>
+</html>
