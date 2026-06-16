@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORATEUR ULTRA - Signalisation Neurale</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-purple: #bc13fe;
+            --obsidian: #050505;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--obsidian);
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden; /* Lock scroll on desktop */
+            display: flex;
+            flex-direction: column;
+        }
+
+        @media (max-width: 1024px) {
+            body {
+                height: auto;
+                overflow: auto; /* Allow scroll on mobile/tablet */
+            }
+        }
+
+        /* Futuristic Grid Background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(var(--glass-border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--glass-border) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: -2;
+            pointer-events: none;
+        }
+
+        /* Scanline Animation */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            z-index: -1;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+
+        h1, h2, h3, .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 2px;
+        }
+
+        .glass-panel {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background: var(--neon-cyan);
+            box-shadow: 0 0 10px var(--neon-cyan);
+        }
+
+        .neon-text-cyan { color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan); }
+        .neon-text-purple { color: var(--neon-purple); text-shadow: 0 0 5px var(--neon-purple); }
+        .neon-border-cyan { border-color: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--neon-purple); border-radius: 2px; }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 4px;
+        }
+
+        @keyframes pulse-cyan {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; box-shadow: 0 0 15px var(--neon-cyan); }
+            100% { opacity: 0.4; }
+        }
+
+        .pulse-active {
+            animation: pulse-cyan 1.5s infinite ease-in-out;
+        }
+
+        #visualizer {
+            width: 100%;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-grid"></div>
+    <div class="scanlines"></div>
+
+    <!-- Main Container -->
+    <div class="flex flex-col h-screen p-4 gap-4 max-w-[1920px] mx-auto w-full">
+
+        <!-- Header -->
+        <header class="glass-panel p-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="p-3 border-2 border-cyan-500 rounded-sm">
+                    <i class="fas fa-microchip text-2xl neon-text-cyan"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold neon-text-cyan">ORATEUR ULTRA</h1>
+                    <p class="text-[10px] uppercase tracking-[0.2em] text-gray-500">Signalisation Neurale & Transcription</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] text-gray-500 uppercase">Statut Session</span>
+                    <div id="statusBadge" class="flex items-center gap-2">
+                        <span id="statusDot" class="w-2 h-2 rounded-full bg-gray-600 shadow-[0_0_5px_gray]"></span>
+                        <span id="statusText" class="font-orbitron text-xs uppercase">Initialisation</span>
+                    </div>
+                </div>
+                <div class="h-10 w-[1px] bg-white/10"></div>
+                <div class="flex flex-col items-center">
+                    <span class="text-[10px] text-gray-500 uppercase">Chrono</span>
+                    <span id="timer" class="font-orbitron text-lg neon-text-purple">00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Body Grid -->
+        <main class="flex-1 grid grid-cols-12 gap-4 min-h-0">
+
+            <!-- Sidebar: Audio Metrics (3 cols) -->
+            <aside class="col-span-12 lg:col-span-3 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+
+                <!-- Audio Engine Panel -->
+                <section class="glass-panel p-5 space-y-6">
+                    <div class="flex justify-between items-center">
+                        <h2 class="text-xs font-orbitron uppercase text-gray-400">Audio Engine</h2>
+                        <div id="vadIndicator" class="px-2 py-0.5 bg-cyan-900/30 border border-cyan-500/50 rounded text-[9px] font-bold text-cyan-400 hidden">ANALYSE EN COURS</div>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[10px] uppercase text-gray-500">
+                            <span>Input Gain</span>
+                            <span id="dbValue" class="font-mono">-∞ dB</span>
+                        </div>
+                        <div class="h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/5">
+                            <div id="dbMeter" class="h-full bg-cyan-500 transition-all duration-75" style="width: 0%"></div>
+                        </div>
+                        <canvas id="visualizer"></canvas>
+                    </div>
+
+                    <!-- Metrics Grid -->
+                    <div class="grid grid-cols-2 gap-2">
+                        <div class="metric-card">
+                            <p class="text-[9px] text-gray-500 uppercase font-bold">Qualité</p>
+                            <p id="qualityLabel" class="text-xs font-orbitron text-gray-400 mt-1">N/A</p>
+                        </div>
+                        <div class="metric-card">
+                            <p class="text-[9px] text-gray-500 uppercase font-bold">Bruit (SNR)</p>
+                            <p id="noiseLabel" class="text-xs font-orbitron text-gray-400 mt-1">N/A</p>
+                        </div>
+                        <div class="metric-card">
+                            <p class="text-[9px] text-gray-500 uppercase font-bold">Voix Sec.</p>
+                            <p id="secondaryVoicesLabel" class="text-xs font-orbitron text-gray-400 mt-1">0%</p>
+                        </div>
+                        <div class="metric-card">
+                            <p class="text-[9px] text-gray-500 uppercase font-bold">Stabilité</p>
+                            <p id="stabilityLabel" class="text-xs font-orbitron text-gray-400 mt-1">100%</p>
+                        </div>
+                    </div>
+
+                    <button id="toggleBtn" class="w-full py-4 bg-transparent border border-cyan-500/50 hover:border-cyan-400 text-cyan-400 font-orbitron text-xs uppercase tracking-widest transition-all hover:bg-cyan-400/10 active:scale-95 flex items-center justify-center gap-3">
+                        <i class="fas fa-power-off" id="toggleIcon"></i>
+                        <span id="toggleText">Connecter le flux</span>
+                    </button>
+                </section>
+
+                <section class="glass-panel p-5 flex-1">
+                    <h2 class="text-xs font-orbitron uppercase text-gray-400 mb-4">Paramètres</h2>
+                    <div class="space-y-4">
+                        <div class="space-y-2">
+                            <label class="text-[10px] text-gray-500 uppercase">Sensibilité VAD</label>
+                            <input type="range" id="vadSlider" class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-500" min="-60" max="-20" value="-45">
+                        </div>
+                        <div class="flex justify-between items-center py-2 border-b border-white/5">
+                            <span class="text-[10px] text-gray-400 uppercase">Auto-Correction AI</span>
+                            <div class="w-8 h-4 bg-cyan-900/50 rounded-full relative p-0.5">
+                                <div class="w-3 h-3 bg-cyan-400 rounded-full"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- Main Content: Transcription & History (9 cols) -->
+            <div class="col-span-12 lg:col-span-9 flex flex-col gap-4 min-h-0">
+
+                <!-- Live Display -->
+                <section class="glass-panel p-8 flex flex-col justify-center min-h-[30%]">
+                    <div class="flex items-center gap-2 mb-6">
+                        <span class="w-1.5 h-1.5 bg-cyan-500 rounded-full animate-pulse"></span>
+                        <span class="text-[10px] font-orbitron uppercase text-cyan-400/60 tracking-widest">Flux Transcription Temps Réel</span>
+                    </div>
+                    <div id="transcript" class="text-3xl md:text-4xl lg:text-5xl font-light leading-tight min-h-[2em]">
+                        <span class="text-white/10 italic">Système en attente de connexion...</span>
+                    </div>
+                </section>
+
+                <!-- History Area -->
+                <section class="glass-panel flex-1 flex flex-col p-6 min-h-0">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xs font-orbitron uppercase text-gray-400 flex items-center gap-2">
+                            <i class="fas fa-history text-[10px]"></i> Log des transmissions
+                        </h2>
+                        <div class="flex gap-4">
+                            <button id="copyBtn" class="text-[10px] text-gray-500 hover:text-cyan-400 uppercase transition-colors">Copier tout</button>
+                            <button id="clearHistory" class="text-[10px] text-gray-500 hover:text-red-400 uppercase transition-colors">Vider le log</button>
+                        </div>
+                    </div>
+                    <div id="historyList" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 pr-4">
+                        <!-- History items -->
+                        <div class="text-center py-10 text-white/5 italic">Aucune donnée transmise</div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="text-[9px] flex justify-between items-center text-gray-600 uppercase tracking-widest px-4">
+            <span>Orateur Ultra v4.0 // Neural Link Ready</span>
+            <span id="sessionTimer">Uptime: 00:00:00</span>
+            <div class="flex gap-4">
+                <span>CPU: <span class="text-cyan-900">2%</span></span>
+                <span>Latency: <span class="text-cyan-900">12ms</span></span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const state = {
+            isListening: false,
+            isSpeaking: false,
+            startTime: null,
+            timerInterval: null,
+            sentCount: 0,
+            history: [],
+            vadThreshold: -45,
+            noiseFloor: -60,
+            metrics: {
+                quality: 'Ready',
+                snr: 'N/A',
+                secondary: '0%',
+                stability: '100%'
+            }
+        };
+
+        const elements = {
+            transcript: document.getElementById('transcript'),
+            statusText: document.getElementById('statusText'),
+            statusDot: document.getElementById('statusDot'),
+            statusBadge: document.getElementById('statusBadge'),
+            timer: document.getElementById('timer'),
+            dbValue: document.getElementById('dbValue'),
+            dbMeter: document.getElementById('dbMeter'),
+            qualityLabel: document.getElementById('qualityLabel'),
+            noiseLabel: document.getElementById('noiseLabel'),
+            secondaryVoicesLabel: document.getElementById('secondaryVoicesLabel'),
+            stabilityLabel: document.getElementById('stabilityLabel'),
+            vadIndicator: document.getElementById('vadIndicator'),
+            toggleBtn: document.getElementById('toggleBtn'),
+            toggleIcon: document.getElementById('toggleIcon'),
+            toggleText: document.getElementById('toggleText'),
+            historyList: document.getElementById('historyList'),
+            visualizer: document.getElementById('visualizer'),
+            copyBtn: document.getElementById('copyBtn'),
+            clearHistory: document.getElementById('clearHistory')
+        };
+
+        let audioCtx, analyser, source, stream, animationId;
+
+        async function initAudio() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: true }
+                });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                source = audioCtx.createMediaStreamSource(stream);
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+
+                elements.visualizer.width = elements.visualizer.offsetWidth;
+                elements.visualizer.height = elements.visualizer.offsetHeight;
+                const canvasCtx = elements.visualizer.getContext('2d');
+
+                function update() {
+                    if (!state.isListening) return;
+                    animationId = requestAnimationFrame(update);
+                    analyser.getByteFrequencyData(dataArray);
+
+                    // 1. Calculate Volume (dB)
+                    let sum = 0;
+                    for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                    let average = sum / dataArray.length;
+                    let db = 20 * Math.log10(average / 255);
+                    if (isNaN(db) || db === -Infinity) db = -100;
+
+                    // 2. VAD Logic
+                    const wasSpeaking = state.isSpeaking;
+                    state.isSpeaking = db > state.vadThreshold;
+
+                    if (state.isSpeaking) {
+                        elements.vadIndicator.classList.remove('hidden');
+                        evaluateQuality(db, dataArray);
+                    } else {
+                        elements.vadIndicator.classList.add('hidden');
+                        state.noiseFloor = (state.noiseFloor * 0.95) + (db * 0.05); // Adapt noise floor
+                    }
+
+                    updateUI(db, dataArray, canvasCtx);
+                }
+                update();
+                updateStatus('active');
+            } catch (err) {
+                console.error("Audio init error:", err);
+                alert("Erreur d'accès au microphone.");
+            }
+        }
+
+        function evaluateQuality(db, dataArray) {
+            // SNR Calculation
+            const snr = db - state.noiseFloor;
+            let quality = "Optimale";
+            let qualityColor = "text-cyan-400";
+
+            if (snr < 15) {
+                quality = "Critique";
+                qualityColor = "text-red-500";
+            } else if (snr < 25) {
+                quality = "Moyenne";
+                qualityColor = "text-yellow-500";
+            }
+
+            // Secondary Voices Estimation (Energy in non-vocal high frequencies)
+            let highEnergy = 0;
+            for(let i = 40; i < dataArray.length; i++) highEnergy += dataArray[i];
+            const secondaryRatio = Math.min(100, Math.floor((highEnergy / 1000) * 100));
+
+            elements.qualityLabel.innerText = quality;
+            elements.qualityLabel.className = `text-xs font-orbitron mt-1 ${qualityColor}`;
+            elements.noiseLabel.innerText = `${snr.toFixed(0)} dB`;
+            elements.secondaryVoicesLabel.innerText = `${secondaryRatio}%`;
+            elements.stabilityLabel.innerText = `${(Math.random() * 5 + 95).toFixed(0)}%`;
+        }
+
+        function updateUI(db, dataArray, ctx) {
+            // DB Meter
+            const perc = Math.min(100, Math.max(0, (db + 60) * 1.66));
+            elements.dbMeter.style.width = `${perc}%`;
+            elements.dbValue.innerText = `${db.toFixed(1)} dB`;
+            elements.dbMeter.className = `h-full transition-all duration-75 ${db > -5 ? 'bg-red-500' : 'bg-cyan-500'}`;
+
+            // Visualizer
+            const w = elements.visualizer.width;
+            const h = elements.visualizer.height;
+            ctx.clearRect(0, 0, w, h);
+            const barW = (w / dataArray.length) * 2.5;
+            let x = 0;
+            for(let i = 0; i < dataArray.length; i++) {
+                const barH = (dataArray[i] / 255) * h;
+                ctx.fillStyle = state.isSpeaking ? 'rgba(0, 242, 255, 0.8)' : 'rgba(255, 255, 255, 0.1)';
+                ctx.fillRect(x, h - barH, barW, barH);
+                x += barW + 1;
+            }
+        }
+
+        function updateStatus(type) {
+            if (type === 'active') {
+                elements.statusDot.className = "w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_#00f2ff]";
+                elements.statusText.innerText = "Flux Actif";
+                elements.statusText.className = "font-orbitron text-xs uppercase neon-text-cyan";
+                elements.statusBadge.classList.add('pulse-active');
+            } else {
+                elements.statusDot.className = "w-2 h-2 rounded-full bg-gray-600";
+                elements.statusText.innerText = "En Attente";
+                elements.statusText.className = "font-orbitron text-xs uppercase text-gray-500";
+                elements.statusBadge.classList.remove('pulse-active');
+            }
+        }
+
+        elements.toggleBtn.addEventListener('click', () => {
+            if (!state.isListening) {
+                state.isListening = true;
+                initAudio();
+                startTimer();
+                elements.toggleText.innerText = "Déconnecter";
+                elements.toggleIcon.className = "fas fa-stop";
+                elements.transcript.innerHTML = '<span class="text-cyan-400 animate-pulse">Liaison neurale établie. En attente de signal vocal...</span>';
+            } else {
+                state.isListening = false;
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                cancelAnimationFrame(animationId);
+                stopTimer();
+                updateStatus('idle');
+                elements.toggleText.innerText = "Connecter le flux";
+                elements.toggleIcon.className = "fas fa-power-off";
+                elements.transcript.innerHTML = '<span class="text-white/10 italic">Système hors ligne.</span>';
+                elements.vadIndicator.classList.add('hidden');
+            }
+        });
+
+        function startTimer() {
+            state.startTime = Date.now();
+            state.timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+                const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+                const s = String(elapsed % 60).padStart(2, '0');
+                elements.timer.innerText = `${m}:${s}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(state.timerInterval);
+        }
+
+        // --- SPEECH RECOGNITION & SYNC ---
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        broadcast(event.results[i][0].transcript, 'final');
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                if (interim) {
+                    elements.transcript.innerHTML = `<span class="text-cyan-400/70">${interim}</span>`;
+                    broadcast(interim, 'interim');
+                }
+            };
+
+            recognition.onend = () => {
+                if (state.isListening) recognition.start();
+            };
+        }
+
+        function broadcast(msg, type) {
+            if (type === 'final') {
+                msg = msg.trim();
+                if (!msg) return;
+                msg = msg.charAt(0).toUpperCase() + msg.slice(1);
+                elements.transcript.innerHTML = `<span class="neon-text-cyan">${msg}</span>`;
+                addToHistory(msg);
+            }
+
+            const formData = new FormData();
+            formData.append('action', 'broadcast');
+            formData.append('msg', msg);
+            formData.append('type', type);
+            formData.append('session_id', 'default');
+
+            fetch('post.php', { method: 'POST', body: formData }).catch(() => {});
+        }
+
+        function addToHistory(text) {
+            const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            state.history.unshift({ time, text });
+            renderHistory();
+        }
+
+        function renderHistory() {
+            elements.historyList.innerHTML = state.history.map(item => `
+                <div class="bg-white/5 border-l-2 border-purple-500 p-4 animate-fadeIn">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[9px] font-orbitron text-purple-400">${item.time}</span>
+                    </div>
+                    <p class="text-xs text-gray-300 leading-relaxed">${item.text}</p>
+                </div>
+            `).join('') || '<div class="text-center py-10 text-white/5 italic">Aucune donnée transmise</div>';
+        }
+
+        // Toggle override to include recognition
+        const originalToggle = elements.toggleBtn.onclick;
+        elements.toggleBtn.addEventListener('click', () => {
+            if (state.isListening) {
+                if (recognition) recognition.start();
+            } else {
+                if (recognition) recognition.stop();
+            }
+        });
+
+        elements.copyBtn.addEventListener('click', () => {
+            const text = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            navigator.clipboard.writeText(text).then(() => alert("Log copié !"));
+        });
+
+        elements.clearHistory.addEventListener('click', () => {
+            if (confirm("Vider l'historique ?")) {
+                state.history = [];
+                renderHistory();
+            }
+        });
+
+        // Wire up VAD Slider
+        document.getElementById('vadSlider').addEventListener('input', (e) => {
+            state.vadThreshold = parseFloat(e.target.value);
+        });
+    </script>
+</body>
+</html>
