@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORATEUR ULTRA - Transcription & Signal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-purple: #bc13fe;
+            --deep-black: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            background-color: var(--deep-black);
+            background-image:
+                linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            overflow: hidden; /* Prevent scroll on desktop */
+            height: 100vh;
+        }
+
+        @media (max-width: 1024px) {
+            body {
+                overflow: auto;
+                height: auto;
+            }
+        }
+
+        .orbitron { font-family: 'Orbitron', sans-serif; }
+
+        .scanline {
+            width: 100%;
+            height: 100px;
+            z-index: 99;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(0, 242, 255, 0.02) 50%, rgba(0, 0, 0, 0) 100%);
+            opacity: 0.1;
+            position: absolute;
+            bottom: 100%;
+            animation: scanline 8s linear infinite;
+            pointer-events: none;
+        }
+
+        @keyframes scanline {
+            0% { bottom: 100%; }
+            100% { bottom: -100px; }
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        .neon-border-cyan { border-color: var(--neon-cyan); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        .neon-text-cyan { color: var(--neon-cyan); text-shadow: 0 0 8px rgba(0, 242, 255, 0.5); }
+        .neon-text-purple { color: var(--neon-purple); text-shadow: 0 0 8px rgba(188, 19, 254, 0.5); }
+
+        .pulse-cyan { animation: pulse-cyan 2s infinite; }
+        @keyframes pulse-cyan {
+            0% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 242, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); }
+        }
+
+        .pulse-red { animation: pulse-red 1.5s infinite; }
+        @keyframes pulse-red {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        #visualizer { width: 100%; height: 60px; }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .metric-card:hover { border-color: rgba(0, 242, 255, 0.3); }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 10px; opacity: 0.3; }
+
+        #toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        #toast.active { transform: translateX(0); }
+    </style>
+</head>
+<body class="flex flex-col">
+    <div class="scanline"></div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="glass px-6 py-3 border-l-4 border-[#00f2ff] flex items-center gap-3">
+        <i class="fas fa-info-circle neon-text-cyan"></i>
+        <span id="toastMessage" class="font-semibold text-xs uppercase tracking-wider">Session Initialisée</span>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div class="flex-1 flex flex-col p-4 md:p-6 gap-6 max-w-[1600px] mx-auto w-full">
+
+        <!-- Header -->
+        <header class="flex flex-wrap items-center justify-between gap-4 glass p-4 min-h-[64px]">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded bg-gradient-to-br from-[#00f2ff] to-[#bc13fe] flex items-center justify-center pulse-cyan">
+                    <i class="fas fa-microchip text-black text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="orbitron text-xl font-bold tracking-tighter neon-text-cyan">ORATEUR ULTRA</h1>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-[0.2em]">Tableau de Bord de Signalisation Neurale</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <div class="flex flex-col items-end">
+                    <span class="text-[9px] text-gray-500 uppercase font-bold">Statut Système</span>
+                    <div class="flex items-center gap-2">
+                        <span id="statusDot" class="w-2 h-2 rounded-full bg-gray-600"></span>
+                        <span id="statusText" class="orbitron text-[11px] font-bold text-gray-500 uppercase">OFFLINE</span>
+                    </div>
+                </div>
+                <div class="h-8 w-[1px] bg-white/10"></div>
+                <div class="flex flex-col items-end">
+                    <span class="text-[9px] text-gray-500 uppercase font-bold">Chrono Session</span>
+                    <span id="timer" class="orbitron text-sm font-bold neon-text-purple">00:00:00</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="flex-1 grid grid-cols-12 gap-6 overflow-hidden lg:max-h-full">
+
+            <!-- Left Panel: Engine & Controls -->
+            <div class="col-span-12 lg:col-span-4 flex flex-col gap-6 overflow-y-auto lg:overflow-hidden custom-scrollbar">
+
+                <!-- Audio Engine Control -->
+                <div class="glass p-5 space-y-6 flex-shrink-0">
+                    <div class="flex items-center justify-between">
+                        <h2 class="orbitron text-xs font-bold neon-text-cyan uppercase tracking-widest">Moteur Audio Core</h2>
+                        <div id="analyseIndicator" class="hidden items-center gap-2">
+                            <span class="text-[10px] font-bold text-[#00f2ff] animate-pulse">ANALYSE</span>
+                            <i class="fas fa-satellite-dish text-[#00f2ff] text-xs fa-spin"></i>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-end">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Amplitude (dB)</label>
+                            <span id="dbValue" class="orbitron text-xs font-bold">-∞ dB</span>
+                        </div>
+                        <div class="h-2 bg-black/40 rounded-full border border-white/5 overflow-hidden">
+                            <div id="dbMeter" class="h-full bg-gradient-to-r from-cyan-500 to-purple-500 transition-all duration-75" style="width: 0%"></div>
+                        </div>
+                        <canvas id="visualizer"></canvas>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="metric-card">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-[9px] font-bold text-gray-500 uppercase">Qualité</span>
+                                <i class="fas fa-shield-halved text-[10px] text-cyan-500/50"></i>
+                            </div>
+                            <div id="qualityLabel" class="orbitron text-[11px] font-bold">---</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-[9px] font-bold text-gray-500 uppercase">Bruit / SNR</span>
+                                <i class="fas fa-wave-square text-[10px] text-purple-500/50"></i>
+                            </div>
+                            <div id="noiseLabel" class="orbitron text-[11px] font-bold">---</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-[9px] font-bold text-gray-500 uppercase">Voix Secondaires</span>
+                                <i class="fas fa-users-viewfinder text-[10px] text-cyan-500/50"></i>
+                            </div>
+                            <div id="secondaryLabel" class="orbitron text-[11px] font-bold">---</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="flex justify-between mb-2">
+                                <span class="text-[9px] font-bold text-gray-500 uppercase">Stabilité</span>
+                                <i class="fas fa-gauge-high text-[10px] text-purple-500/50"></i>
+                            </div>
+                            <div id="stabilityLabel" class="orbitron text-[11px] font-bold">---</div>
+                        </div>
+                    </div>
+
+                    <button id="toggleBtn" class="w-full py-4 bg-transparent border border-cyan-500/50 hover:border-cyan-400 text-cyan-400 orbitron text-xs font-bold uppercase tracking-[0.3em] transition-all active:scale-95 flex items-center justify-center gap-3 rounded-lg group">
+                        <i class="fas fa-power-off group-hover:neon-text-cyan"></i>
+                        <span id="toggleText">INITIALISER SYSTÈME</span>
+                    </button>
+                </div>
+
+                <!-- Session Meta -->
+                <div class="glass p-5 space-y-4 flex-1">
+                    <h2 class="orbitron text-xs font-bold text-gray-400 uppercase tracking-widest border-b border-white/5 pb-3">Paramètres Session</h2>
+
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">ID Session</span>
+                            <span id="sessionId" class="orbitron text-xs font-bold text-white">---</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">VAD Sensibilité</span>
+                            <input type="range" id="vadSlider" min="-60" max="-20" value="-45" class="w-24 accent-[#00f2ff]">
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-500">Permission Micro</span>
+                            <span id="permStatus" class="font-bold text-gray-500">REQ...</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 pt-4">
+                        <button id="copyBtn" class="py-2 glass text-[10px] font-bold uppercase hover:bg-white/10 transition-colors">Copier Logs</button>
+                        <button id="hardCleanup" class="py-2 glass text-[10px] font-bold uppercase text-red-500/70 hover:text-red-500 border-red-500/20">Hard Cleanup</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Live Feed & History -->
+            <div class="col-span-12 lg:col-span-8 flex flex-col gap-6 overflow-hidden">
+
+                <!-- Transcription Real-time -->
+                <div class="glass p-6 md:p-8 flex flex-col h-[280px] flex-shrink-0 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#00f2ff]/30 to-transparent"></div>
+                    <div class="flex items-center gap-3 mb-6">
+                        <i class="fas fa-satellite fa-beat neon-text-cyan text-sm"></i>
+                        <span class="orbitron text-[10px] font-bold text-gray-500 uppercase tracking-[0.4em]">FLUX NEURAL DIRECT</span>
+                    </div>
+                    <div id="transcript" class="flex-1 text-2xl md:text-4xl font-light leading-snug text-white/90 overflow-y-auto custom-scrollbar italic">
+                        <span class="text-white/10">Initialisez le système pour démarrer la capture...</span>
+                    </div>
+                </div>
+
+                <!-- History -->
+                <div class="glass flex-1 flex flex-col p-5 overflow-hidden">
+                    <div class="flex items-center justify-between mb-4 pb-3 border-b border-white/5">
+                        <h2 class="orbitron text-xs font-bold text-gray-400 uppercase tracking-widest">Archive de Session</h2>
+                        <span id="sentCount" class="orbitron text-[10px] font-bold bg-cyan-500/10 text-cyan-500 px-2 py-1 rounded">0 PHRASES</span>
+                    </div>
+                    <div id="historyList" class="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                        <!-- Entries -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- ÉTAT GLOBAL ---
+        const state = {
+            isListening: false,
+            isSpeaking: false,
+            startTime: null,
+            timerInterval: null,
+            sentCount: 0,
+            sessionId: Math.random().toString(36).substring(2, 10).toUpperCase(),
+            vadThreshold: -45,
+            noiseFloor: -100,
+            lastDb: -100,
+            history: JSON.parse(localStorage.getItem('orateur_ultra_history') || '[]'),
+            metrics: {
+                quality: 0,
+                snr: 0,
+                secondary: 0,
+                stability: 0
+            }
+        };
+
+        const elements = {
+            toggleBtn: document.getElementById('toggleBtn'),
+            toggleText: document.getElementById('toggleText'),
+            statusDot: document.getElementById('statusDot'),
+            statusText: document.getElementById('statusText'),
+            dbValue: document.getElementById('dbValue'),
+            dbMeter: document.getElementById('dbMeter'),
+            timer: document.getElementById('timer'),
+            transcript: document.getElementById('transcript'),
+            historyList: document.getElementById('historyList'),
+            sentCount: document.getElementById('sentCount'),
+            qualityLabel: document.getElementById('qualityLabel'),
+            noiseLabel: document.getElementById('noiseLabel'),
+            secondaryLabel: document.getElementById('secondaryLabel'),
+            stabilityLabel: document.getElementById('stabilityLabel'),
+            analyseIndicator: document.getElementById('analyseIndicator'),
+            sessionIdDisplay: document.getElementById('sessionId'),
+            permStatus: document.getElementById('permStatus'),
+            vadSlider: document.getElementById('vadSlider'),
+            visualizer: document.getElementById('visualizer'),
+            toast: document.getElementById('toast'),
+            toastMessage: document.getElementById('toastMessage')
+        };
+
+        // --- AUDIO ENGINE ---
+        let audioContext, analyser, source, stream;
+
+        async function initAudioEngine() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
+
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                if (audioContext.state === 'suspended') await audioContext.resume();
+
+                source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 512;
+                source.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                elements.visualizer.width = elements.visualizer.offsetWidth;
+                elements.visualizer.height = elements.visualizer.offsetHeight;
+                const ctx = elements.visualizer.getContext('2d');
+
+                function loop() {
+                    if (!state.isListening) return;
+                    requestAnimationFrame(loop);
+
+                    analyser.getByteFrequencyData(dataArray);
+
+                    // Calcul Amplitude
+                    let sum = 0;
+                    for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+                    let average = sum / dataArray.length;
+                    let db = 20 * Math.log10(average / 255);
+                    if (isNaN(db) || db === -Infinity) db = -100;
+
+                    state.isSpeaking = db > state.vadThreshold;
+                    updateUI(db, dataArray, ctx);
+                    evaluateMetrics(db, dataArray);
+                }
+
+                loop();
+                showToast("MOTEUR AUDIO CONNECTÉ");
+                elements.permStatus.innerText = "OK";
+                elements.permStatus.className = "font-bold text-cyan-400";
+
+            } catch (err) {
+                console.error(err);
+                showToast("ACCÈS MICRO REFUSÉ");
+                elements.permStatus.innerText = "REFUSÉ";
+                elements.permStatus.className = "font-bold text-red-500";
+            }
+        }
+
+        function updateUI(db, dataArray, ctx) {
+            elements.dbValue.innerText = `${db.toFixed(1)} dB`;
+            const percent = Math.max(0, (db + 80) * 1.25);
+            elements.dbMeter.style.width = `${percent}%`;
+
+            if (state.isSpeaking) {
+                elements.analyseIndicator.classList.remove('hidden');
+                elements.analyseIndicator.classList.add('flex');
+            } else {
+                elements.analyseIndicator.classList.add('hidden');
+                elements.analyseIndicator.classList.remove('flex');
+            }
+
+            // Visualizer
+            ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            const barWidth = (ctx.canvas.width / dataArray.length) * 2;
+            let x = 0;
+            for(let i = 0; i < dataArray.length; i++) {
+                const barHeight = (dataArray[i] / 255) * ctx.canvas.height;
+                const r = 0, g = 242, b = 255;
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${barHeight / ctx.canvas.height + 0.1})`;
+                ctx.fillRect(x, ctx.canvas.height - barHeight, barWidth - 1, barHeight);
+                x += barWidth;
+            }
+        }
+
+        function evaluateMetrics(db, dataArray) {
+            if (!state.isSpeaking) {
+                // Tracking noise floor
+                state.noiseFloor = (state.noiseFloor * 0.95) + (db * 0.05);
+                return;
+            }
+
+            // 1. SNR / Bruit
+            const snr = db - state.noiseFloor;
+            elements.noiseLabel.innerText = snr > 20 ? "EXCELLENT" : (snr > 10 ? "MOYEN" : "BRUYANT");
+            elements.noiseLabel.className = `orbitron text-[11px] font-bold ${snr > 20 ? 'neon-text-cyan' : 'text-yellow-500'}`;
+
+            // 2. Stabilité (Variance)
+            const stability = Math.abs(db - state.lastDb);
+            elements.stabilityLabel.innerText = stability < 5 ? "STABLE" : "INSTABLE";
+            elements.stabilityLabel.className = `orbitron text-[11px] font-bold ${stability < 5 ? 'text-green-500' : 'text-red-400'}`;
+            state.lastDb = db;
+
+            // 3. Voix Secondaires (Energy out of range)
+            // Simplified: energy in high frequencies
+            let highEnergy = 0;
+            for(let i = Math.floor(dataArray.length * 0.6); i < dataArray.length; i++) highEnergy += dataArray[i];
+            const secondary = highEnergy / (dataArray.length * 0.4);
+            elements.secondaryLabel.innerText = secondary < 30 ? "AUCUNE" : "DÉTECTÉE";
+            elements.secondaryLabel.className = `orbitron text-[11px] font-bold ${secondary < 30 ? 'text-gray-400' : 'text-orange-400'}`;
+
+            // 4. Qualité Globale
+            const quality = Math.min(100, Math.max(0, (snr * 2) + (100 - stability * 10)));
+            elements.qualityLabel.innerText = `${Math.round(quality)}%`;
+            elements.qualityLabel.className = `orbitron text-[11px] font-bold ${quality > 80 ? 'neon-text-cyan' : (quality > 50 ? 'text-yellow-500' : 'text-red-500')}`;
+        }
+
+        // --- SPEECH RECOGNITION ---
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        savePhrase(event.results[i][0].transcript);
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                if (interim) {
+                    elements.transcript.textContent = interim;
+                    elements.transcript.classList.remove('italic', 'text-white/10');
+                }
+            };
+
+            recognition.onend = () => {
+                if (state.isListening) recognition.start();
+            };
+        }
+
+        function savePhrase(text) {
+            if (!text.trim()) return;
+            const phrase = text.trim();
+            const time = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            const item = { text: phrase, time: time };
+            state.history.unshift(item);
+            if (state.history.length > 50) state.history.pop();
+            localStorage.setItem('orateur_ultra_history', JSON.stringify(state.history));
+
+            renderHistory();
+
+            // POST to backend
+            fetch('post.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `msg=${encodeURIComponent(phrase)}&session_id=${state.sessionId}&post=yes`
+            }).catch(console.error);
+        }
+
+        function renderHistory() {
+            elements.sentCount.innerText = `${state.history.length} PHRASES`;
+            elements.historyList.innerHTML = state.history.map(item => `
+                <div class="glass-card p-3 flex gap-4 items-start border-l-2 border-cyan-500/30 animate-in slide-in-from-right duration-300">
+                    <span class="orbitron text-[9px] text-cyan-500/50 mt-1">${item.time}</span>
+                    <p class="text-[12px] text-white/80 leading-relaxed">${item.text}</p>
+                </div>
+            `).join('') || '<div class="text-center py-8 text-white/10 italic text-xs">Aucun historique</div>';
+        }
+
+        // --- CONTROLS ---
+        elements.toggleBtn.addEventListener('click', async () => {
+            if (!state.isListening) {
+                state.isListening = true;
+                state.startTime = Date.now();
+                elements.toggleText.innerText = "DÉSACTIVER SYSTÈME";
+                elements.toggleBtn.classList.add('neon-border-cyan');
+                elements.statusDot.className = "w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f2ff]";
+                elements.statusText.innerText = "ONLINE";
+                elements.statusText.className = "orbitron text-[11px] font-bold neon-text-cyan";
+
+                startTimer();
+                if (!audioContext) await initAudioEngine();
+                if (recognition) recognition.start();
+                elements.transcript.innerHTML = '<span class="text-cyan-400 animate-pulse">Flux neural en attente...</span>';
+
+                // Set session ID
+                elements.sessionIdDisplay.innerText = state.sessionId;
+
+            } else {
+                state.isListening = false;
+                elements.toggleText.innerText = "INITIALISER SYSTÈME";
+                elements.toggleBtn.classList.remove('neon-border-cyan');
+                elements.statusDot.className = "w-2 h-2 rounded-full bg-gray-600";
+                elements.statusText.innerText = "OFFLINE";
+                elements.statusText.className = "orbitron text-[11px] font-bold text-gray-500";
+
+                clearInterval(state.timerInterval);
+                if (recognition) recognition.stop();
+                elements.transcript.innerHTML = '<span class="text-white/10 italic">Système en veille...</span>';
+            }
+        });
+
+        function startTimer() {
+            state.timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+                const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+                const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+                const s = (elapsed % 60).toString().padStart(2, '0');
+                elements.timer.innerText = `${h}:${m}:${s}`;
+            }, 1000);
+        }
+
+        function showToast(msg) {
+            elements.toastMessage.innerText = msg;
+            elements.toast.classList.add('active');
+            setTimeout(() => elements.toast.classList.remove('active'), 3000);
+        }
+
+        elements.vadSlider.addEventListener('input', (e) => {
+            state.vadThreshold = parseInt(e.target.value);
+        });
+
+        elements.copyBtn.addEventListener('click', () => {
+            const text = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            if (!text) return showToast("HISTORIQUE VIDE");
+            navigator.clipboard.writeText(text).then(() => showToast("LOGS COPIÉS"));
+        });
+
+        // Cleanup actions
+        document.getElementById('hardCleanup').addEventListener('click', async () => {
+            if (confirm('Nettoyage global de toutes les sessions ?')) {
+                localStorage.removeItem('orateur_ultra_history');
+                await fetch('post.php?action=clear_all');
+                location.reload();
+            }
+        });
+
+        // Handle page unload
+        window.addEventListener('beforeunload', () => {
+            if (state.isListening) {
+                const data = new URLSearchParams();
+                data.append('action', 'stop_session');
+                data.append('session_id', state.sessionId);
+                navigator.sendBeacon('post.php', data);
+            }
+        });
+
+        // Initial Load
+        renderHistory();
+    </script>
+</body>
+</html>
