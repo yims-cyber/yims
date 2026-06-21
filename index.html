@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORATEUR ULTRA - Dashboard Neural</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-purple: #bc13fe;
+            --obsidian: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body {
+            background-color: var(--obsidian);
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Default for desktop */
+            height: 100vh;
+            margin: 0;
+            position: relative;
+        }
+
+        @media (max-width: 1024px) {
+            body {
+                overflow: auto;
+                height: auto;
+            }
+        }
+
+        /* Grid Background */
+        .bg-grid {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            z-index: -1;
+        }
+
+        /* Scanline Overlay */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.25) 50%
+            );
+            background-size: 100% 4px;
+            z-index: 10;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .orbitron { font-family: 'Orbitron', sans-serif; }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        .neon-border-cyan { border-color: var(--neon-cyan); box-shadow: 0 0 10px var(--neon-cyan); }
+        .neon-text-cyan { color: var(--neon-cyan); text-shadow: 0 0 5px var(--neon-cyan); }
+        .neon-text-purple { color: var(--neon-purple); text-shadow: 0 0 5px var(--neon-purple); }
+
+        /* Custom Scrollbar for history */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--neon-purple); border-radius: 10px; }
+
+        @keyframes pulse-cyan {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .pulse { animation: pulse-cyan 2s infinite; }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 3px solid var(--neon-cyan);
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .active-speech {
+            border-left-color: var(--neon-purple);
+            box-shadow: -5px 0 15px rgba(188, 19, 254, 0.3);
+        }
+
+        #visualizer {
+            width: 100%;
+            height: 100px;
+            filter: drop-shadow(0 0 8px var(--neon-cyan));
+        }
+
+        /* Gauge styles */
+        .gauge-container {
+            position: relative;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .gauge-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body class="flex flex-col p-4 lg:p-6 space-y-6">
+    <div class="bg-grid"></div>
+    <div class="scanlines"></div>
+
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-center gap-4 z-20">
+        <div class="flex items-center gap-4">
+            <div class="relative">
+                <div class="w-14 h-14 rounded-full border-2 border-dashed border-cyan-400 flex items-center justify-center animate-spin-slow" style="animation: spin 10s linear infinite;"></div>
+                <i class="fas fa-satellite-dish absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-cyan-400 text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-2xl lg:text-3xl font-bold orbitron neon-text-cyan tracking-tighter">ORATEUR ULTRA</h1>
+                <p class="text-[10px] uppercase tracking-[0.3em] text-purple-400 font-semibold">Tableau de Bord de Signalisation Neurale</p>
+            </div>
+        </div>
+
+        <div class="flex gap-4 items-center">
+            <div class="glass px-4 py-2 flex items-center gap-3">
+                <div id="statusDot" class="w-2 h-2 rounded-full bg-gray-500 shadow-[0_0_5px_#666]"></div>
+                <span id="statusText" class="text-xs orbitron font-medium uppercase text-gray-400">Station Hors-Ligne</span>
+            </div>
+            <div id="speechIndicator" class="hidden glass px-4 py-2 items-center gap-3 border-purple-500/50 border">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-purple-500"></span>
+                </span>
+                <span class="text-xs orbitron font-medium uppercase text-purple-400">ANALYSE EN COURS</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 z-20">
+        <!-- Sidebar: Audio Controls & Metrics -->
+        <aside class="lg:col-span-4 flex flex-col gap-6 overflow-y-auto custom-scrollbar lg:pr-2">
+
+            <!-- Audio Engine Card -->
+            <section class="glass p-5 space-y-5">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xs orbitron font-bold text-cyan-400 uppercase tracking-widest">Moteur Audio Ultra</h2>
+                    <span id="dbValue" class="text-[10px] font-mono text-purple-400">-∞ dB</span>
+                </div>
+
+                <div class="space-y-4">
+                    <canvas id="visualizer"></canvas>
+
+                    <div class="space-y-2">
+                        <div class="flex justify-between text-[10px] orbitron text-gray-500">
+                            <span>ENTRÉE MICRO</span>
+                            <span id="gainValue">0%</span>
+                        </div>
+                        <div class="gauge-container">
+                            <div id="micGauge" class="gauge-fill bg-cyan-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="toggleBtn" class="col-span-2 py-4 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold orbitron transition-all active:scale-95 shadow-lg shadow-cyan-900/20 flex items-center justify-center gap-3">
+                        <i id="toggleIcon" class="fas fa-power-off"></i>
+                        <span id="toggleText">INITIER LA LIAISON</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Metrics Dashboard -->
+            <section class="glass p-5 space-y-4">
+                <h2 class="text-xs orbitron font-bold text-purple-400 uppercase tracking-widest mb-4">Analyse de Signal en Temps Réel</h2>
+
+                <!-- Qualité -->
+                <div class="metric-card">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] orbitron text-gray-400">QUALITÉ DU SIGNAL</span>
+                        <span id="qualityVal" class="text-xs font-bold neon-text-cyan">0%</span>
+                    </div>
+                    <div class="gauge-container">
+                        <div id="qualityGauge" class="gauge-fill bg-cyan-400"></div>
+                    </div>
+                </div>
+
+                <!-- Bruit -->
+                <div class="metric-card">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] orbitron text-gray-400">BRUIT AMBIANT / SNR</span>
+                        <span id="noiseVal" class="text-xs font-bold text-yellow-500">0%</span>
+                    </div>
+                    <div class="gauge-container">
+                        <div id="noiseGauge" class="gauge-fill bg-yellow-500"></div>
+                    </div>
+                </div>
+
+                <!-- Voix Secondaires -->
+                <div class="metric-card">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] orbitron text-gray-400">VOIX SECONDAIRES</span>
+                        <span id="secondaryVal" class="text-xs font-bold text-red-500">0%</span>
+                    </div>
+                    <div class="gauge-container">
+                        <div id="secondaryGauge" class="gauge-fill bg-red-500"></div>
+                    </div>
+                </div>
+
+                <!-- Stabilité -->
+                <div class="metric-card">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] orbitron text-gray-400">STABILITÉ VOCALE</span>
+                        <span id="stabilityVal" class="text-xs font-bold text-green-500">0%</span>
+                    </div>
+                    <div class="gauge-container">
+                        <div id="stabilityGauge" class="gauge-fill bg-green-500"></div>
+                    </div>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Main Display: Transcription & History -->
+        <div class="lg:col-span-8 flex flex-col gap-6 min-h-0">
+            <!-- Live Transcription -->
+            <section class="glass p-8 flex-1 flex flex-col justify-center relative overflow-hidden group">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50"></div>
+
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="px-2 py-1 bg-cyan-900/30 border border-cyan-500/30 rounded text-[9px] orbitron text-cyan-400 tracking-widest">FLUX_LIVE_TRANSCRIPTION</div>
+                    <div id="timer" class="text-[10px] font-mono text-purple-400">SESSION: 00:00:00</div>
+                </div>
+
+                <div id="transcript" class="text-3xl lg:text-5xl font-light leading-tight tracking-tight min-h-[3em] transition-all duration-500">
+                    <span class="text-white/10 italic">Système en attente d'acquisition vocale...</span>
+                </div>
+
+                <div class="mt-8 flex gap-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button id="copyBtn" class="px-4 py-2 rounded border border-white/10 hover:bg-white/5 text-[10px] orbitron text-gray-400 transition-all">
+                        <i class="fas fa-copy mr-2"></i> COPIER LE BUFFER
+                    </button>
+                    <button id="clearBtn" class="px-4 py-2 rounded border border-red-900/30 hover:bg-red-900/20 text-[10px] orbitron text-red-400 transition-all">
+                        <i class="fas fa-trash-alt mr-2"></i> RÉINITIALISER
+                    </button>
+                </div>
+            </section>
+
+            <!-- History Log -->
+            <section class="h-1/3 min-h-[150px] flex flex-col">
+                <div class="flex justify-between items-end mb-3">
+                    <h3 class="text-[10px] orbitron font-bold text-gray-500 tracking-[0.2em]">JOURNAL DE RÉCEPTION</h3>
+                    <span id="logCount" class="text-[9px] font-mono text-cyan-600">0 ENTRÉES</span>
+                </div>
+                <div id="historyList" class="flex-1 glass p-4 overflow-y-auto custom-scrollbar space-y-3">
+                    <!-- Logs go here -->
+                    <div class="text-center py-4 text-white/5 text-xs orbitron tracking-widest">AUCUNE DONNÉE DE SESSION</div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Global Scripts -->
+    <script>
+        // State Management
+        const state = {
+            isListening: false,
+            isSpeaking: false,
+            startTime: null,
+            timerInterval: null,
+            dbLevel: -100,
+            noiseFloor: -70,
+            history: JSON.parse(localStorage.getItem('orateur_ultra_history') || '[]'),
+            metrics: {
+                quality: 0,
+                noise: 0,
+                secondary: 0,
+                stability: 0
+            }
+        };
+
+        const elements = {
+            transcript: document.getElementById('transcript'),
+            statusText: document.getElementById('statusText'),
+            statusDot: document.getElementById('statusDot'),
+            speechIndicator: document.getElementById('speechIndicator'),
+            timer: document.getElementById('timer'),
+            toggleBtn: document.getElementById('toggleBtn'),
+            toggleIcon: document.getElementById('toggleIcon'),
+            toggleText: document.getElementById('toggleText'),
+            visualizer: document.getElementById('visualizer'),
+            dbValue: document.getElementById('dbValue'),
+            micGauge: document.getElementById('micGauge'),
+            historyList: document.getElementById('historyList'),
+            logCount: document.getElementById('logCount'),
+            qualityVal: document.getElementById('qualityVal'),
+            qualityGauge: document.getElementById('qualityGauge'),
+            noiseVal: document.getElementById('noiseVal'),
+            noiseGauge: document.getElementById('noiseGauge'),
+            secondaryVal: document.getElementById('secondaryVal'),
+            secondaryGauge: document.getElementById('secondaryGauge'),
+            stabilityVal: document.getElementById('stabilityVal'),
+            stabilityGauge: document.getElementById('stabilityGauge'),
+            copyBtn: document.getElementById('copyBtn'),
+            clearBtn: document.getElementById('clearBtn')
+        };
+
+        // Audio Context & Analysis
+        let audioContext, analyser, dataArray, source;
+        const VAD_THRESHOLD = -45; // dB
+
+        async function initAudioEngine() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
+
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source = audioContext.createMediaStreamSource(stream);
+                source.connect(analyser);
+
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                renderVisualizer();
+                processAudio();
+            } catch (err) {
+                console.error("Audio engine failure:", err);
+                alert("Erreur critique : Accès microphone requis.");
+            }
+        }
+
+        function processAudio() {
+            if (!state.isListening) return;
+            requestAnimationFrame(processAudio);
+
+            analyser.getByteFrequencyData(dataArray);
+
+            // Calculate Volume (dB)
+            let sum = 0;
+            for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            let avg = sum / dataArray.length;
+            let db = 20 * Math.log10(avg / 255);
+            if (isNaN(db) || db === -Infinity) db = -100;
+            state.dbLevel = db;
+
+            // Update UI dB Meter
+            elements.dbValue.innerText = `${db.toFixed(1)} dB`;
+            let micWidth = Math.max(0, (db + 80) * 1.25);
+            elements.micGauge.style.width = `${micWidth}%`;
+
+            // Voice Activity Detection
+            const wasSpeaking = state.isSpeaking;
+            state.isSpeaking = db > VAD_THRESHOLD;
+
+            if (state.isSpeaking) {
+                elements.speechIndicator.classList.remove('hidden');
+                elements.speechIndicator.classList.add('flex');
+                calculateActiveMetrics(db, dataArray);
+            } else {
+                elements.speechIndicator.classList.add('hidden');
+                elements.speechIndicator.classList.remove('flex');
+                // Track noise floor when silent
+                if (db > -90) state.noiseFloor = (state.noiseFloor * 0.95) + (db * 0.05);
+            }
+        }
+
+        function calculateActiveMetrics(db, freqData) {
+            // 1. Signal Quality: Ratio between current volume and ideal range (-20 to -10 dB)
+            let quality = 0;
+            if (db > -30 && db < -5) quality = 100 - Math.abs(db + 15) * 4;
+            else if (db <= -30) quality = Math.max(0, 100 + (db + 10) * 2);
+            else quality = Math.max(0, 100 - (db + 5) * 10);
+            state.metrics.quality = Math.round(quality);
+
+            // 2. SNR (Noise Floor vs Current)
+            let snr = db - state.noiseFloor;
+            let noisePercent = Math.max(0, 100 - (snr * 2));
+            state.metrics.noise = Math.round(noisePercent);
+
+            // 3. Secondary Voices (Approximation via high freq energy 4kHz+)
+            // Our FFT size is 256, bin count 128. Sample rate usually 44.1k or 48k.
+            // Each bin ~180Hz. 4kHz starts around bin 22.
+            let highFreqSum = 0;
+            for(let i = 22; i < freqData.length; i++) highFreqSum += freqData[i];
+            let secondary = (highFreqSum / (freqData.length - 22)) / 2.5;
+            state.metrics.secondary = Math.min(100, Math.round(secondary));
+
+            // 4. Stability (Variance check)
+            let variance = Math.abs(db - (state.lastDb || db));
+            state.lastDb = db;
+            let stability = 100 - (variance * 20);
+            state.metrics.stability = Math.min(100, Math.max(0, Math.round(stability)));
+
+            updateMetricsUI();
+        }
+
+        function updateMetricsUI() {
+            elements.qualityVal.innerText = `${state.metrics.quality}%`;
+            elements.qualityGauge.style.width = `${state.metrics.quality}%`;
+
+            elements.noiseVal.innerText = `${state.metrics.noise}%`;
+            elements.noiseGauge.style.width = `${state.metrics.noise}%`;
+
+            elements.secondaryVal.innerText = `${state.metrics.secondary}%`;
+            elements.secondaryGauge.style.width = `${state.metrics.secondary}%`;
+
+            elements.stabilityVal.innerText = `${state.metrics.stability}%`;
+            elements.stabilityGauge.style.width = `${state.metrics.stability}%`;
+        }
+
+        function renderVisualizer() {
+            if (!state.isListening) return;
+            requestAnimationFrame(renderVisualizer);
+
+            const canvas = elements.visualizer;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.offsetWidth;
+            const height = canvas.height = canvas.offsetHeight;
+
+            ctx.clearRect(0, 0, width, height);
+
+            const barWidth = (width / (dataArray.length / 2));
+            let x = 0;
+
+            for(let i = 0; i < dataArray.length / 2; i++) {
+                const barHeight = (dataArray[i] / 255) * height;
+                const r = 0;
+                const g = 242;
+                const b = 255;
+
+                ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${dataArray[i]/255 + 0.1})`;
+                ctx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
+                x += barWidth;
+            }
+        }
+
+        // Speech Recognition
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        pushToHistory(event.results[i][0].transcript.trim());
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                if (interim) {
+                    elements.transcript.innerHTML = `<span class="neon-text-cyan">${interim}</span>`;
+                }
+            };
+
+            recognition.onend = () => { if (state.isListening) recognition.start(); };
+        }
+
+        function pushToHistory(text) {
+            if (!text) return;
+            const item = {
+                id: Date.now(),
+                text: text.charAt(0).toUpperCase() + text.slice(1),
+                time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+            state.history.unshift(item);
+            if (state.history.length > 50) state.history.pop();
+            localStorage.setItem('orateur_ultra_history', JSON.stringify(state.history));
+            renderHistory();
+
+            // Post to backend
+            fetch('post.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `msg=${encodeURIComponent(item.text)}&post=yes`
+            }).catch(() => {});
+        }
+
+        function renderHistory() {
+            elements.logCount.innerText = `${state.history.length} ENTRÉES`;
+            elements.historyList.innerHTML = state.history.map(item => `
+                <div class="p-3 bg-white/5 border-l-2 border-purple-500 flex gap-4 items-start group hover:bg-white/10 transition-colors">
+                    <span class="text-[9px] font-mono text-purple-400/60 mt-1">${item.time}</span>
+                    <p class="text-xs text-gray-300 leading-relaxed">${item.text}</p>
+                </div>
+            `).join('') || '<div class="text-center py-4 text-white/5 text-xs orbitron tracking-widest">AUCUNE DONNÉE DE SESSION</div>';
+        }
+
+        // UI Controls
+        elements.toggleBtn.addEventListener('click', async () => {
+            if (!state.isListening) {
+                state.isListening = true;
+                if (!audioContext) await initAudioEngine();
+                else audioContext.resume();
+
+                if (recognition) recognition.start();
+
+                state.startTime = Date.now();
+                state.timerInterval = setInterval(updateTimer, 1000);
+
+                elements.toggleText.innerText = "ROMPRE LA LIAISON";
+                elements.toggleIcon.className = "fas fa-unlink";
+                elements.toggleBtn.classList.replace('bg-cyan-600', 'bg-red-900/40');
+                elements.toggleBtn.classList.add('border', 'border-red-500/50');
+
+                elements.statusDot.className = "w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f2ff]";
+                elements.statusText.innerText = "LIAISON ÉTABLIE";
+                elements.statusText.classList.replace('text-gray-400', 'neon-text-cyan');
+
+                elements.transcript.innerHTML = '<span class="text-cyan-400 animate-pulse">Flux neural en cours d\'initialisation...</span>';
+            } else {
+                state.isListening = false;
+                if (recognition) recognition.stop();
+                clearInterval(state.timerInterval);
+
+                elements.toggleText.innerText = "INITIER LA LIAISON";
+                elements.toggleIcon.className = "fas fa-power-off";
+                elements.toggleBtn.classList.replace('bg-red-900/40', 'bg-cyan-600');
+                elements.toggleBtn.classList.remove('border', 'border-red-500/50');
+
+                elements.statusDot.className = "w-2 h-2 rounded-full bg-gray-500 shadow-[0_0_5px_#666]";
+                elements.statusText.innerText = "STATION HORS-LIGNE";
+                elements.statusText.classList.replace('neon-text-cyan', 'text-gray-400');
+
+                elements.transcript.innerHTML = '<span class="text-white/10 italic">Système en attente d\'acquisition vocale...</span>';
+                elements.speechIndicator.classList.add('hidden');
+            }
+        });
+
+        function updateTimer() {
+            const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+            const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+            const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+            const s = (elapsed % 60).toString().padStart(2, '0');
+            elements.timer.innerText = `SESSION: ${h}:${m}:${s}`;
+        }
+
+        elements.copyBtn.addEventListener('click', () => {
+            const fullText = state.history.map(h => h.text).join('\n');
+            navigator.clipboard.writeText(fullText).then(() => {
+                const originalText = elements.copyBtn.innerHTML;
+                elements.copyBtn.innerHTML = '<i class="fas fa-check mr-2"></i> COPIÉ !';
+                setTimeout(() => elements.copyBtn.innerHTML = originalText, 2000);
+            });
+        });
+
+        elements.clearBtn.addEventListener('click', () => {
+            if (confirm("Réinitialiser le buffer de transcription ?")) {
+                state.history = [];
+                localStorage.setItem('orateur_ultra_history', '[]');
+                renderHistory();
+            }
+        });
+
+        // Initial Render
+        renderHistory();
+    </script>
+</body>
+</html>
