@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ORATEUR ULTRA - Transcription Neurale</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-purple: #bc13fe;
+            --bg-deep: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            background-color: var(--bg-deep);
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden; /* Prevent scroll on desktop */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Grid Background */
+        .grid-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Scanline Overlay */
+        .scanlines {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.1) 50%
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.15;
+        }
+
+        .orbitron { font-family: 'Orbitron', sans-serif; }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        }
+
+        .neon-border-cyan { border: 1px solid var(--neon-cyan); box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
+        .neon-text-cyan { color: var(--neon-cyan); text-shadow: 0 0 8px rgba(0, 242, 255, 0.5); }
+        .neon-text-purple { color: var(--neon-purple); text-shadow: 0 0 8px rgba(188, 19, 254, 0.5); }
+
+        /* Scrollbar for history */
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--neon-cyan); border-radius: 10px; }
+
+        @media (max-width: 1024px) {
+            body { overflow: auto; height: auto; }
+            .h-screen-desktop { height: auto; }
+        }
+
+        @keyframes pulse-cyan {
+            0% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 242, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 242, 255, 0); }
+        }
+        .pulse-active { animation: pulse-cyan 2s infinite; }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 2px solid var(--neon-cyan);
+            padding: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        .metric-card:hover { background: rgba(0, 242, 255, 0.05); }
+
+        #visualizer { width: 100%; height: 60px; }
+
+        .nav-item {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="scanlines"></div>
+
+    <!-- Header -->
+    <header class="p-6 border-b border-white/5 glass z-10">
+        <div class="container mx-auto flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center gap-4">
+                <div class="w-12 h-12 flex items-center justify-center border border-cyan-400/30 rounded-lg bg-cyan-400/5">
+                    <i class="fas fa-satellite-dish neon-text-cyan text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="orbitron text-xl font-bold tracking-tighter neon-text-cyan">ORATEUR <span class="text-white">ULTRA</span></h1>
+                    <p class="text-[10px] orbitron tracking-[0.2em] text-white/40">Signalisation Neurale & Transcription</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-6">
+                <div class="hidden md:flex flex-col items-end">
+                    <span class="nav-item text-white/40">Session ID</span>
+                    <span id="sessionDisplay" class="orbitron text-sm neon-text-purple">ULTRA-XXXX</span>
+                </div>
+                <div class="flex gap-2">
+                    <div id="statusIndicator" class="px-4 py-2 rounded border border-white/10 flex items-center gap-3 bg-white/5">
+                        <div id="statusDot" class="w-2 h-2 rounded-full bg-white/20"></div>
+                        <span id="statusText" class="nav-item text-white/60">En Attente</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col lg:flex-row overflow-hidden h-screen-desktop">
+        <!-- Sidebar - Audio Engine Controls -->
+        <aside class="w-full lg:w-80 border-r border-white/5 glass p-6 flex flex-col gap-6 overflow-y-auto">
+            <div class="space-y-4">
+                <h2 class="nav-item text-white/50">Moteur Audio</h2>
+
+                <div class="space-y-3">
+                    <div class="flex justify-between items-end">
+                        <span class="text-[10px] orbitron text-cyan-400/60 uppercase">Niveau d'Entrée</span>
+                        <span id="dbValue" class="orbitron text-xs text-white/80">-100 dB</span>
+                    </div>
+                    <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                        <div id="dbMeter" class="h-full bg-cyan-400 w-0 transition-all duration-75"></div>
+                    </div>
+                    <canvas id="visualizer"></canvas>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3">
+                    <div class="metric-card">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] orbitron text-white/40">Qualité Signal</span>
+                            <i class="fas fa-shield-halved text-[10px] text-cyan-400/50"></i>
+                        </div>
+                        <div id="qualityMetric" class="orbitron text-sm">ANALYSE...</div>
+                    </div>
+                    <div class="metric-card border-purple-500">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] orbitron text-white/40">Bruit de Fond</span>
+                            <i class="fas fa-wind text-[10px] text-purple-400/50"></i>
+                        </div>
+                        <div id="noiseMetric" class="orbitron text-sm">--</div>
+                    </div>
+                    <div class="metric-card border-yellow-500">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] orbitron text-white/40">Voix Secondaires</span>
+                            <i class="fas fa-users text-[10px] text-yellow-400/50"></i>
+                        </div>
+                        <div id="secondaryVoiceMetric" class="orbitron text-sm">DETECTION...</div>
+                    </div>
+                    <div class="metric-card border-blue-500">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] orbitron text-white/40">Stabilité Flux</span>
+                            <i class="fas fa-chart-line text-[10px] text-blue-400/50"></i>
+                        </div>
+                        <div id="stabilityMetric" class="orbitron text-sm">100%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-auto space-y-4">
+                <button id="toggleBtn" class="w-full py-4 bg-transparent border border-cyan-400/50 hover:bg-cyan-400/10 transition-all rounded text-cyan-400 orbitron text-xs font-bold tracking-widest flex items-center justify-center gap-3">
+                    <i id="toggleIcon" class="fas fa-power-off"></i>
+                    <span id="toggleText">INITIALISER</span>
+                </button>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="copyBtn" class="py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] orbitron font-bold rounded">COPIER</button>
+                    <button id="exportBtn" class="py-3 bg-white/5 border border-white/10 hover:bg-white/10 text-[10px] orbitron font-bold rounded">EXPORT</button>
+                </div>
+                <button id="cleanBtn" class="w-full py-3 text-red-500/50 hover:text-red-500 text-[9px] orbitron font-bold tracking-widest transition-colors">NETTOYAGE GLOBAL</button>
+            </div>
+        </aside>
+
+        <!-- Transcription Area -->
+        <section class="flex-1 flex flex-col p-6 lg:p-8 gap-8 overflow-hidden">
+            <!-- Live Display -->
+            <div class="glass p-8 rounded-xl relative flex flex-col justify-center min-h-[300px]">
+                <div class="absolute top-4 left-6 flex items-center gap-2">
+                    <div class="w-1 h-1 bg-cyan-400 rounded-full animate-ping"></div>
+                    <span class="nav-item text-cyan-400/50">Capture Temps Réel</span>
+                </div>
+                <div id="transcript" class="text-3xl md:text-5xl font-light leading-tight tracking-tight text-white/90 max-h-full overflow-y-auto custom-scrollbar">
+                    <span class="text-white/10 italic">Système prêt pour injection neurale...</span>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="flex-1 flex flex-col min-h-0">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="nav-item text-white/40">Historique des Segments</h3>
+                    <span id="sentCount" class="orbitron text-[10px] text-cyan-400">0 PHRASES TRANSMISES</span>
+                </div>
+                <div id="historyList" class="flex-1 overflow-y-auto space-y-2 pr-4 custom-scrollbar">
+                    <!-- History items will appear here -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer Mobile -->
+    <footer class="lg:hidden p-4 border-t border-white/5 glass flex justify-around text-white/40">
+        <i class="fas fa-microphone"></i>
+        <i class="fas fa-list"></i>
+        <i class="fas fa-cog"></i>
+    </footer>
+
+    <script>
+        const state = {
+            isListening: false,
+            isSpeaking: false,
+            audioContext: null,
+            analyser: null,
+            stream: null,
+            dataArray: null,
+            noiseFloor: -60,
+            vadThreshold: -45,
+            metrics: {
+                db: -100,
+                prevDb: -100,
+                snr: 0,
+                stability: 100,
+                secondaryVoices: 0
+            },
+            history: JSON.parse(localStorage.getItem('orateur_ultra_history') || '[]'),
+            sentCount: 0
+        };
+
+        const elements = {
+            dbValue: document.getElementById('dbValue'),
+            dbMeter: document.getElementById('dbMeter'),
+            visualizer: document.getElementById('visualizer'),
+            qualityMetric: document.getElementById('qualityMetric'),
+            noiseMetric: document.getElementById('noiseMetric'),
+            secondaryVoiceMetric: document.getElementById('secondaryVoiceMetric'),
+            stabilityMetric: document.getElementById('stabilityMetric'),
+            toggleBtn: document.getElementById('toggleBtn'),
+            toggleIcon: document.getElementById('toggleIcon'),
+            toggleText: document.getElementById('toggleText'),
+            statusDot: document.getElementById('statusDot'),
+            statusText: document.getElementById('statusText'),
+            transcript: document.getElementById('transcript'),
+            historyList: document.getElementById('historyList'),
+            sentCount: document.getElementById('sentCount'),
+            sessionDisplay: document.getElementById('sessionDisplay'),
+            copyBtn: document.getElementById('copyBtn'),
+            exportBtn: document.getElementById('exportBtn'),
+            cleanBtn: document.getElementById('cleanBtn')
+        };
+
+        // Generate Session ID
+        const sessionId = 'ULTRA-' + Math.random().toString(16).slice(2, 6).toUpperCase();
+        elements.sessionDisplay.textContent = sessionId;
+
+        async function setupAudioEngine() {
+            try {
+                state.stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
+
+                state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = state.audioContext.createMediaStreamSource(state.stream);
+                state.analyser = state.audioContext.createAnalyser();
+                state.analyser.fftSize = 512;
+
+                source.connect(state.analyser);
+
+                const bufferLength = state.analyser.frequencyBinCount;
+                state.dataArray = new Uint8Array(bufferLength);
+
+                requestAnimationFrame(analyzeAudio);
+                return true;
+            } catch (err) {
+                console.error("Audio Engine Error:", err);
+                alert("Erreur d'accès au micro.");
+                return false;
+            }
+        }
+
+        function analyzeAudio() {
+            if (!state.isListening) return;
+            requestAnimationFrame(analyzeAudio);
+
+            state.analyser.getByteFrequencyData(state.dataArray);
+
+            // 1. Calculate RMS -> dB
+            let sum = 0;
+            for (let i = 0; i < state.dataArray.length; i++) {
+                sum += state.dataArray[i] * state.dataArray[i];
+            }
+            let rms = Math.sqrt(sum / state.dataArray.length);
+            let db = 20 * Math.log10(rms / 255);
+            if (db < -100 || isNaN(db)) db = -100;
+
+            state.metrics.db = db;
+
+            // 2. VAD Logic
+            state.isSpeaking = db > state.vadThreshold;
+
+            // 3. Noise Floor Tracking (during silence)
+            if (!state.isSpeaking) {
+                // Smoothly update noise floor
+                state.noiseFloor = state.noiseFloor * 0.95 + db * 0.05;
+            }
+
+            // 4. SNR Calculation
+            state.metrics.snr = db - state.noiseFloor;
+
+            // 5. Stability Calculation (Variance)
+            const diff = Math.abs(db - state.metrics.prevDb);
+            state.metrics.stability = Math.max(0, 100 - (diff * 5));
+            state.metrics.prevDb = db;
+
+            // 6. Secondary Voice Approximation (Spectral analysis)
+            // Human voice is roughly 300Hz - 3000Hz.
+            // We check energy in bins outside this range during speech.
+            if (state.isSpeaking) {
+                let offRangeEnergy = 0;
+                const nyquist = state.audioContext.sampleRate / 2;
+                for (let i = 0; i < state.dataArray.length; i++) {
+                    const freq = (i * nyquist) / state.dataArray.length;
+                    if (freq < 300 || freq > 3000) {
+                        offRangeEnergy += state.dataArray[i];
+                    }
+                }
+                state.metrics.secondaryVoices = (offRangeEnergy / state.dataArray.length) / 2.5;
+            } else {
+                state.metrics.secondaryVoices = 0;
+            }
+
+            drawVisualizer();
+            updateAudioUI();
+        }
+
+        function drawVisualizer() {
+            const canvas = elements.visualizer;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+
+            // Auto-resize canvas
+            if (canvas.width !== canvas.offsetWidth) {
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+            }
+
+            ctx.clearRect(0, 0, width, height);
+            const barWidth = (width / state.dataArray.length) * 2;
+            let x = 0;
+
+            for (let i = 0; i < state.dataArray.length; i++) {
+                const barHeight = (state.dataArray[i] / 255) * height;
+
+                // Gradient style
+                const gradient = ctx.createLinearGradient(0, height, 0, 0);
+                gradient.addColorStop(0, '#00f2ff');
+                gradient.addColorStop(1, '#bc13fe');
+
+                ctx.fillStyle = gradient;
+                ctx.globalAlpha = state.isSpeaking ? 1 : 0.3;
+                ctx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
+                x += barWidth;
+            }
+            ctx.globalAlpha = 1;
+        }
+
+        function updateAudioUI() {
+            // Update dB Meter
+            elements.dbValue.textContent = `${state.metrics.db.toFixed(1)} dB`;
+            let percentage = Math.max(0, (state.metrics.db + 60) * 1.66);
+            elements.dbMeter.style.width = `${percentage}%`;
+            elements.dbMeter.style.backgroundColor = state.metrics.db > -10 ? '#ff4d4d' : '#00f2ff';
+
+            // Update Noise Metric
+            elements.noiseMetric.textContent = `${state.noiseFloor.toFixed(0)} dB (BASE)`;
+            elements.noiseMetric.style.color = state.noiseFloor > -40 ? '#bc13fe' : '#e0e0e0';
+
+            // Update Stability
+            elements.stabilityMetric.textContent = `${state.metrics.stability.toFixed(0)}%`;
+            elements.stabilityMetric.style.color = state.metrics.stability < 70 ? '#ff4d4d' : '#00f2ff';
+
+            // Update Secondary Voices
+            elements.secondaryVoiceMetric.textContent = state.metrics.secondaryVoices > 15 ? "DÉTECTÉES" : "NÉANT";
+            elements.secondaryVoiceMetric.style.color = state.metrics.secondaryVoices > 15 ? '#bc13fe' : '#e0e0e0';
+
+            if (state.isSpeaking) {
+                elements.statusDot.style.backgroundColor = '#00f2ff';
+                elements.statusText.textContent = "ANALYSE ACTIVE";
+                elements.statusText.classList.add('neon-text-cyan');
+
+                // Signal Quality evaluation only when speaking
+                let quality = "OPTIMALE";
+                let color = "#00f2ff";
+                if (state.metrics.snr < 15) {
+                    quality = "FAIBLE (BRUIT)";
+                    color = "#bc13fe";
+                } else if (state.metrics.db > -5) {
+                    quality = "SATURATION";
+                    color = "#ff4d4d";
+                }
+                elements.qualityMetric.textContent = quality;
+                elements.qualityMetric.style.color = color;
+            } else {
+                elements.statusDot.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                elements.statusText.textContent = "SILENCE / VEILLE";
+                elements.statusText.classList.remove('neon-text-cyan');
+                elements.qualityMetric.textContent = "ATTENTE...";
+                elements.qualityMetric.style.color = "rgba(255,255,255,0.4)";
+            }
+        }
+
+        // Speech Recognition Setup
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        savePhrase(event.results[i][0].transcript.trim());
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                if (interimTranscript) {
+                    elements.transcript.innerHTML = `<span class="text-white/50">${interimTranscript}</span>`;
+                }
+            };
+
+            recognition.onend = () => {
+                if (state.isListening) recognition.start();
+            };
+        }
+
+        function savePhrase(text) {
+            if (!text) return;
+            const entry = {
+                id: Date.now(),
+                text: text.charAt(0).toUpperCase() + text.slice(1),
+                time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+            };
+
+            state.history.unshift(entry);
+            if (state.history.length > 50) state.history.pop();
+            localStorage.setItem('orateur_ultra_history', JSON.stringify(state.history));
+
+            state.sentCount++;
+            elements.sentCount.textContent = `${state.sentCount} PHRASES TRANSMISES`;
+            elements.transcript.textContent = entry.text;
+
+            renderHistory();
+            sendToServer(entry.text);
+        }
+
+        function renderHistory() {
+            elements.historyList.innerHTML = state.history.map(h => `
+                <div class="glass p-4 rounded border-l-2 border-cyan-400/30 flex justify-between items-start group hover:bg-white/5 transition-all">
+                    <p class="text-xs text-white/80 leading-relaxed">${h.text}</p>
+                    <span class="orbitron text-[9px] text-white/20 whitespace-nowrap ml-4">${h.time}</span>
+                </div>
+            `).join('') || '<div class="text-center py-10 text-white/5 orbitron text-[10px]">HISTORIQUE VIDE</div>';
+        }
+
+        async function sendToServer(msg) {
+            try {
+                await fetch('post.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `session_id=${state.sessionDisplay.textContent}&msg=${encodeURIComponent(msg)}&post=yes`
+                });
+            } catch (e) {}
+        }
+
+        elements.toggleBtn.addEventListener('click', async () => {
+            if (!state.isListening) {
+                if (!state.audioContext) {
+                    const success = await setupAudioEngine();
+                    if (!success) return;
+                }
+                state.isListening = true;
+                state.audioContext.resume();
+                if (recognition) {
+                    try { recognition.start(); } catch(e) {}
+                }
+
+                elements.toggleText.textContent = "ARRÊTER";
+                elements.toggleIcon.className = "fas fa-stop";
+                elements.toggleBtn.classList.add('pulse-active');
+                elements.transcript.innerHTML = '<span class="text-cyan-400 animate-pulse">Initialisation du flux neural...</span>';
+                requestAnimationFrame(analyzeAudio);
+            } else {
+                state.isListening = false;
+                if (recognition) recognition.stop();
+                elements.toggleText.textContent = "INITIALISER";
+                elements.toggleIcon.className = "fas fa-power-off";
+                elements.toggleBtn.classList.remove('pulse-active');
+                elements.statusText.textContent = "SESSION PAUSE";
+                elements.transcript.innerHTML = '<span class="text-white/10 italic">Transcription en pause</span>';
+            }
+        });
+
+        // Additional Actions
+        elements.copyBtn.addEventListener('click', () => {
+            const fullText = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            navigator.clipboard.writeText(fullText);
+            alert("Historique copié !");
+        });
+
+        elements.exportBtn.addEventListener('click', () => {
+            const fullText = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            const blob = new Blob([fullText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `ORATEUR-ULTRA-${state.sessionDisplay.textContent}.txt`;
+            a.click();
+        });
+
+        elements.cleanBtn.addEventListener('click', async () => {
+            if (confirm("Voulez-vous supprimer toutes les données serveur ?")) {
+                await fetch('post.php?action=hard_cleanup');
+                state.history = [];
+                localStorage.removeItem('orateur_ultra_history');
+                renderHistory();
+            }
+        });
+
+        // Init history
+        renderHistory();
+    </script>
+</body>
+</html>
