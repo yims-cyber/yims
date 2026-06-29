@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎤 Orateur Pro - Neural Cinematic Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --accent-cyan: #00f2ff;
+            --accent-purple: #bc13fe;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --font-main: 'Inter', sans-serif;
+            --font-accent: 'Orbitron', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image:
+                linear-gradient(var(--glass-border) 1px, transparent 1px),
+                linear-gradient(90deg, var(--glass-border) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: white;
+            font-family: var(--font-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        @media (max-width: 1024px) {
+            body {
+                height: auto;
+                overflow: auto;
+                display: block;
+            }
+        }
+
+        .dashboard-container {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                display: flex;
+                flex-direction: column;
+                height: auto;
+            }
+        }
+
+        /* Scanline Effect */
+        body::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 2;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        .sidebar {
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(40px);
+            border-right: 1px solid var(--glass-border);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            z-index: 10;
+        }
+
+        .main-content {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            position: relative;
+            z-index: 5;
+            overflow-y: auto;
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .neon-text-cyan {
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        .neon-text-purple {
+            color: var(--accent-purple);
+            text-shadow: 0 0 10px rgba(188, 19, 254, 0.5);
+        }
+
+        .font-orbitron {
+            font-family: var(--font-accent);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 900;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-active {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 15px var(--accent-cyan);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        #visualizer {
+            width: 100%;
+            height: 80px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+
+        .history-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .history-list::-webkit-scrollbar-thumb {
+            background: var(--accent-purple);
+            border-radius: 10px;
+        }
+
+        #speechIndicator {
+            display: none;
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--accent-cyan);
+            animation: blink 0.5s step-end infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="header-logo">
+                <h1 class="font-orbitron text-2xl font-black neon-text-cyan">Orateur <span class="text-white">Pro</span></h1>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-1">Advanced Neural Audio Interface</p>
+            </div>
+
+            <div class="glass-card flex flex-col gap-4">
+                <div class="flex justify-between items-center">
+                    <span class="font-orbitron text-xs text-gray-400">Signal Status</span>
+                    <div id="speechIndicator">ANALYSING SIGNAL...</div>
+                </div>
+                <div class="flex items-center">
+                    <span id="statusDot" class="status-indicator bg-gray-600"></span>
+                    <span id="statusText" class="font-orbitron text-[11px] text-gray-500">Standby</span>
+                </div>
+                <canvas id="visualizer"></canvas>
+            </div>
+
+            <div class="metrics-grid grid grid-cols-1 gap-4">
+                <div class="glass-card">
+                    <p class="text-[10px] uppercase text-gray-500 font-bold mb-1">Sound Quality</p>
+                    <p id="qualityLabel" class="metric-value font-orbitron neon-text-cyan">--</p>
+                </div>
+                <div class="glass-card">
+                    <p class="text-[10px] uppercase text-gray-500 font-bold mb-1">Noise Rate / SNR</p>
+                    <p id="noiseLabel" class="metric-value font-orbitron text-white">--</p>
+                </div>
+                <div class="glass-card">
+                    <p class="text-[10px] uppercase text-gray-500 font-bold mb-1">Secondary Voices</p>
+                    <p id="secondaryVoiceLabel" class="metric-value font-orbitron text-gray-400">--</p>
+                </div>
+            </div>
+
+            <div class="mt-auto space-y-3">
+                <button id="toggleBtn" class="w-full py-4 bg-transparent border-2 border-cyan-500 text-cyan-500 hover:bg-cyan-500 hover:text-black font-orbitron font-black transition-all duration-300 rounded-none transform active:scale-95">
+                    INITIATE CAPTURE
+                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="copyBtn" class="py-2 bg-white/5 border border-white/10 text-[10px] font-orbitron hover:bg-white/10">Copy RAW</button>
+                    <button id="exportBtn" class="py-2 bg-white/5 border border-white/10 text-[10px] font-orbitron hover:bg-white/10">Export DB</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                <div class="flex gap-8">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] uppercase text-gray-500 font-bold">Session Timer</span>
+                        <span id="timer" class="font-orbitron text-lg">00:00:00</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] uppercase text-gray-500 font-bold">Packets Sent</span>
+                        <span id="sentCount" class="font-orbitron text-lg neon-text-purple">0</span>
+                    </div>
+                </div>
+                <div class="flex gap-4">
+                    <span class="text-[10px] uppercase text-gray-500 font-bold">Locale: <span class="text-white">FR-FR</span></span>
+                </div>
+            </div>
+
+            <div class="flex-1 flex flex-col gap-6 overflow-hidden">
+                <div class="glass-card flex-1 flex flex-col justify-center items-center relative overflow-hidden">
+                    <div class="absolute top-4 left-4 flex items-center gap-2">
+                        <div class="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        <span class="text-[10px] font-orbitron text-red-500">Live Stream</span>
+                    </div>
+                    <div id="transcript" class="text-3xl md:text-5xl font-light text-center max-w-3xl leading-tight transition-all duration-500">
+                        <span class="opacity-20 italic">Waiting for neural link...</span>
+                    </div>
+                </div>
+
+                <div class="h-1/3 flex flex-col gap-3">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-orbitron text-xs text-gray-500">Transaction History</h3>
+                        <button id="clearHistory" class="text-[10px] text-red-500/50 hover:text-red-500 font-orbitron">Purge Cache</button>
+                    </div>
+                    <div id="historyList" class="history-list flex-1 overflow-y-auto space-y-2 pr-2">
+                        <!-- History items -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="toast" class="fixed bottom-8 left-1/2 -translate-x-1/2 glass-card border-red-500/50 text-red-500 px-6 py-3 font-orbitron text-xs opacity-0 pointer-events-none transition-all duration-300 z-50">
+        CRITICAL: AUDIO DISTORTION DETECTED
+    </div>
+
+    <script>
+        const state = {
+            isListening: false,
+            isSpeaking: false,
+            startTime: null,
+            timerInterval: null,
+            sentCount: 0,
+            history: JSON.parse(localStorage.getItem('orateur_history') || '[]'),
+            noiseFloor: 0,
+            vadThreshold: -45, // dB
+            metrics: {
+                quality: '--',
+                snr: '--',
+                secondary: '--'
+            }
+        };
+
+        const elements = {
+            transcript: document.getElementById('transcript'),
+            statusText: document.getElementById('statusText'),
+            statusDot: document.getElementById('statusDot'),
+            timer: document.getElementById('timer'),
+            sentCount: document.getElementById('sentCount'),
+            toggleBtn: document.getElementById('toggleBtn'),
+            historyList: document.getElementById('historyList'),
+            visualizer: document.getElementById('visualizer'),
+            qualityLabel: document.getElementById('qualityLabel'),
+            noiseLabel: document.getElementById('noiseLabel'),
+            secondaryVoiceLabel: document.getElementById('secondaryVoiceLabel'),
+            speechIndicator: document.getElementById('speechIndicator'),
+            toast: document.getElementById('toast'),
+            copyBtn: document.getElementById('copyBtn'),
+            exportBtn: document.getElementById('exportBtn'),
+            clearHistory: document.getElementById('clearHistory')
+        };
+
+        let audioCtx, analyser, source, stream;
+        let dataArray;
+
+        async function initAudio() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                source = audioCtx.createMediaStreamSource(stream);
+                source.connect(analyser);
+
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                drawVisualizer();
+                processAudioLoop();
+            } catch (err) {
+                console.error("Audio Init Error:", err);
+                showToast("MICROPHONE ACCESS DENIED");
+            }
+        }
+
+        function drawVisualizer() {
+            const canvas = elements.visualizer;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width = canvas.offsetWidth;
+            const height = canvas.height = canvas.offsetHeight;
+
+            function draw() {
+                if (!state.isListening) {
+                    ctx.clearRect(0, 0, width, height);
+                    requestAnimationFrame(draw);
+                    return;
+                }
+                requestAnimationFrame(draw);
+                analyser.getByteFrequencyData(dataArray);
+
+                ctx.fillStyle = 'rgba(5, 5, 5, 0.2)';
+                ctx.fillRect(0, 0, width, height);
+
+                const barWidth = (width / dataArray.length) * 2.5;
+                let x = 0;
+
+                for (let i = 0; i < dataArray.length; i++) {
+                    const barHeight = (dataArray[i] / 255) * height;
+                    const r = 0;
+                    const g = 242;
+                    const b = 255;
+
+                    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${dataArray[i] / 255})`;
+                    ctx.fillRect(x, height - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            }
+            draw();
+        }
+
+        function processAudioLoop() {
+            setInterval(() => {
+                if (!state.isListening) return;
+
+                analyser.getByteFrequencyData(dataArray);
+
+                // Calculate RMS -> dB
+                let sum = 0;
+                for (let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
+                let rms = Math.sqrt(sum / dataArray.length);
+                let db = 20 * Math.log10(rms / 255);
+                if (isFinite(db)) {
+                    // Simple VAD
+                    if (db > state.vadThreshold) {
+                        state.isSpeaking = true;
+                        elements.speechIndicator.style.display = 'block';
+                        updateMetrics(db);
+                    } else {
+                        state.isSpeaking = false;
+                        elements.speechIndicator.style.display = 'none';
+                        // Update noise floor when silent
+                        state.noiseFloor = (state.noiseFloor * 0.9) + (db * 0.1);
+                        elements.qualityLabel.innerText = "WAITING...";
+                        elements.qualityLabel.classList.remove('neon-text-cyan');
+                    }
+                }
+            }, 100);
+        }
+
+        function updateMetrics(currentDb) {
+            // SNR Calculation
+            const snr = currentDb - state.noiseFloor;
+            elements.noiseLabel.innerText = `${snr.toFixed(1)} dB`;
+
+            // Quality Assessment
+            let quality = "OPTIMAL";
+            if (snr < 15) quality = "POOR";
+            else if (snr < 25) quality = "FAIR";
+
+            if (currentDb > -5) {
+                quality = "DISTORTED";
+                showToast("CRITICAL: AUDIO DISTORTION");
+            }
+
+            elements.qualityLabel.innerText = quality;
+            elements.qualityLabel.classList.add('neon-text-cyan');
+
+            // Secondary Voice Heuristic
+            // Analysis of high-frequency energy variance or unexpected peaks
+            // in typical non-human ranges during active speech.
+            let highFreqSum = 0;
+            for (let i = Math.floor(dataArray.length * 0.6); i < dataArray.length; i++) {
+                highFreqSum += dataArray[i];
+            }
+            const secondaryRatio = (highFreqSum / (dataArray.length * 0.4)) / 255;
+            const secondaryPercent = Math.min(100, (secondaryRatio * 500)).toFixed(0);
+            elements.secondaryVoiceLabel.innerText = `${secondaryPercent}%`;
+            elements.secondaryVoiceLabel.style.color = secondaryPercent > 30 ? '#bc13fe' : '#4b5563';
+        }
+
+        function showToast(msg) {
+            elements.toast.innerText = msg;
+            elements.toast.style.opacity = '1';
+            setTimeout(() => elements.toast.style.opacity = '0', 3000);
+        }
+
+        elements.toggleBtn.addEventListener('click', async () => {
+            if (!state.isListening) {
+                if (!audioCtx) await initAudio();
+                state.isListening = true;
+                state.startTime = Date.now();
+
+                elements.toggleBtn.innerText = "CEASE CAPTURE";
+                elements.toggleBtn.classList.add('border-red-500', 'text-red-500');
+                elements.statusDot.className = 'status-indicator status-active';
+                elements.statusText.innerText = 'ACTIVE';
+                elements.statusText.className = 'font-orbitron text-[11px] neon-text-cyan';
+                elements.transcript.innerHTML = '<span class="opacity-30 animate-pulse font-orbitron text-sm">Synchronizing...</span>';
+
+                startTimer();
+                if (recognition) {
+                    try {
+                        recognition.start();
+                    } catch(e) {
+                        console.error("Recognition start error:", e);
+                    }
+                }
+            } else {
+                state.isListening = false;
+
+                elements.toggleBtn.innerText = "INITIATE CAPTURE";
+                elements.toggleBtn.classList.remove('border-red-500', 'text-red-500');
+                elements.statusDot.className = 'status-indicator bg-gray-600';
+                elements.statusText.innerText = 'STANDBY';
+                elements.statusText.className = 'font-orbitron text-[11px] text-gray-500';
+                elements.transcript.innerHTML = '<span class="opacity-20 italic">Waiting for neural link...</span>';
+
+                stopTimer();
+                if (recognition) recognition.stop();
+            }
+        });
+
+        function startTimer() {
+            state.timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+                const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+                const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+                const s = (elapsed % 60).toString().padStart(2, '0');
+                elements.timer.innerText = `${h}:${m}:${s}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(state.timerInterval);
+        }
+
+        // --- SPEECH RECOGNITION ---
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        processFinalPhrase(event.results[i][0].transcript.trim());
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                if (interimTranscript) {
+                    elements.transcript.innerHTML = `<span class="text-cyan-400/80">${interimTranscript}</span>`;
+                }
+            };
+
+            recognition.onend = () => {
+                if (state.isListening) recognition.start();
+            };
+        }
+
+        function processFinalPhrase(phrase) {
+            if (!phrase) return;
+            phrase = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+
+            const item = {
+                id: Date.now(),
+                text: phrase,
+                time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+
+            state.history.unshift(item);
+            localStorage.setItem('orateur_history', JSON.stringify(state.history.slice(0, 50)));
+            renderHistory();
+
+            state.sentCount++;
+            elements.sentCount.innerText = state.sentCount;
+            elements.transcript.innerHTML = `<span>${phrase}</span>`;
+
+            fetch('post.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `msg=${encodeURIComponent(phrase)}&post=yes`
+            }).catch(() => {});
+        }
+
+        function renderHistory() {
+            elements.historyList.innerHTML = state.history.map(item => `
+                <div class="glass-card py-3 px-4 flex gap-4 items-start border-l-2 border-l-purple-500/30">
+                    <span class="font-orbitron text-[9px] text-purple-500/50 mt-1">${item.time}</span>
+                    <p class="text-xs text-white/70 flex-1 leading-relaxed">${item.text}</p>
+                </div>
+            `).join('') || '<div class="text-center py-8 text-white/5 font-orbitron text-[10px]">CACHE EMPTY</div>';
+        }
+
+        elements.copyBtn.addEventListener('click', () => {
+            const text = state.history.map(h => h.text).join('\n');
+            navigator.clipboard.writeText(text).then(() => showToast("DATA COPIED TO CLIPBOARD"));
+        });
+
+        elements.exportBtn.addEventListener('click', () => {
+            const text = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `session-${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.txt`;
+            a.click();
+        });
+
+        elements.clearHistory.addEventListener('click', () => {
+            if (confirm('PURGE LOCAL CACHE?')) {
+                state.history = [];
+                localStorage.setItem('orateur_history', '[]');
+                renderHistory();
+            }
+        });
+
+        // Initialize UI
+        renderHistory();
+
+    </script>
+</body>
+</html>
