@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎤 Orateur Pro | Dashboard Neural Cinematic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-purple: #bc13fe;
+            --deep-black: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            cursor: default;
+        }
+
+        body {
+            background-color: var(--deep-black);
+            background-image:
+                linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        @media (max-width: 1024px) {
+            body {
+                height: auto;
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+        }
+
+        /* Scanline Animation */
+        body::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            z-index: 9999;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        h1, h2, h3, .metric-label {
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            height: 100vh;
+            width: 100%;
+            z-index: 10;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                display: block;
+                height: auto;
+            }
+        }
+
+        .sidebar {
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            overflow-y: auto;
+        }
+
+        @media (max-width: 1024px) {
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid var(--glass-border);
+                overflow-y: visible;
+                height: auto;
+                padding: 1.5rem;
+            }
+        }
+
+        .main-content {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                overflow-y: visible;
+                height: auto;
+                padding: 1.5rem;
+            }
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(0, 242, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.05);
+        }
+
+        .metric-card {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        .gauge-container {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .gauge-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+            box-shadow: 0 0 10px var(--neon-cyan);
+            transition: width 0.3s ease;
+        }
+
+        .btn-glow {
+            background: transparent;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-glow:hover {
+            background: var(--neon-cyan);
+            color: var(--deep-black);
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .btn-glow.active {
+            border-color: var(--neon-purple);
+            color: var(--neon-purple);
+        }
+
+        .btn-glow.active:hover {
+            background: var(--neon-purple);
+            color: var(--deep-black);
+            box-shadow: 0 0 20px var(--neon-purple);
+        }
+
+        #transcript {
+            font-size: 2rem;
+            line-height: 1.4;
+            font-weight: 300;
+            color: #fff;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .history-item {
+            background: rgba(255,255,255,0.02);
+            border-left: 2px solid var(--neon-purple);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0 8px 8px 0;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        #speechIndicator {
+            display: none;
+            color: var(--neon-cyan);
+            font-size: 10px;
+            font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--neon-purple);
+            border-radius: 10px;
+        }
+
+        #visualizer {
+            width: 100%;
+            height: 100px;
+            filter: drop-shadow(0 0 5px var(--neon-cyan));
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #444;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .status-dot.active {
+            background: var(--neon-cyan);
+            box-shadow: 0 0 8px var(--neon-cyan);
+        }
+    </style>
+</head>
+<body class="custom-scrollbar">
+
+    <div class="dashboard-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar custom-scrollbar">
+            <div class="flex items-center gap-4 mb-4">
+                <div class="w-10 h-10 rounded bg-gradient-to-br from-cyan-400 to-purple-600 flex items-center justify-center">
+                    <i class="fas fa-microchip text-xl text-black"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-black leading-tight">Orateur<span class="text-cyan-400">Pro</span></h1>
+                    <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Neural Engine v2.4</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <button id="toggleBtn" class="btn-glow w-full">
+                    <i class="fas fa-power-off"></i>
+                    <span id="toggleText">Initialiser</span>
+                </button>
+
+                <div class="flex items-center justify-between px-2">
+                    <div class="flex items-center">
+                        <span id="statusDot" class="status-dot"></span>
+                        <span id="statusText" class="text-[10px] uppercase font-bold text-gray-500">Hors Ligne</span>
+                    </div>
+                    <span id="timer" class="font-mono text-cyan-400 font-bold">00:00</span>
+                </div>
+            </div>
+
+            <div class="space-y-6 mt-4">
+                <!-- Visualizer -->
+                <div class="metric-card">
+                    <span class="metric-label text-[10px] text-gray-400">Signal Frequency</span>
+                    <canvas id="visualizer"></canvas>
+                </div>
+
+                <!-- Metrics -->
+                <div class="glass-panel metric-card">
+                    <div class="flex justify-between items-center">
+                        <span class="metric-label text-[10px] text-gray-400">Sound Quality</span>
+                        <span id="speechIndicator">ANALYSING SIGNAL...</span>
+                    </div>
+                    <span id="qualityVal" class="metric-value">--%</span>
+                    <div class="gauge-container">
+                        <div id="qualityGauge" class="gauge-fill"></div>
+                    </div>
+                </div>
+
+                <div class="glass-panel metric-card">
+                    <span class="metric-label text-[10px] text-gray-400">Noise Rate (SNR)</span>
+                    <span id="noiseVal" class="metric-value">-- dB</span>
+                    <div class="gauge-container">
+                        <div id="noiseGauge" class="gauge-fill"></div>
+                    </div>
+                </div>
+
+                <div class="glass-panel metric-card">
+                    <span class="metric-label text-[10px] text-gray-400">Secondary Voices</span>
+                    <span id="secondaryVal" class="metric-value">0.0</span>
+                    <div class="gauge-container">
+                        <div id="secondaryGauge" class="gauge-fill"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-auto pt-4 border-t border-white/5 grid grid-cols-2 gap-2">
+                <button id="copyBtn" class="text-[10px] uppercase font-bold p-2 border border-white/10 rounded hover:bg-white/5 transition">
+                    <i class="fas fa-copy mr-1"></i> Copy
+                </button>
+                <button id="exportBtn" class="text-[10px] uppercase font-bold p-2 border border-white/10 rounded hover:bg-white/5 transition">
+                    <i class="fas fa-download mr-1"></i> Export
+                </button>
+                <button id="clearHistory" class="text-[10px] uppercase font-bold p-2 border border-red-900/30 text-red-500/50 rounded hover:bg-red-500/10 transition col-span-2 mt-2">
+                    Clear History
+                </button>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content custom-scrollbar">
+            <!-- Live View -->
+            <div class="flex flex-col h-1/2 relative glass-panel">
+                <div class="absolute top-4 left-6 flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping"></div>
+                    <span class="text-[10px] uppercase font-bold tracking-widest text-cyan-400/70">Neural Live Stream</span>
+                </div>
+
+                <div id="transcript" class="flex-1 px-8">
+                    <span class="text-white/10 italic text-xl">En attente d'initialisation du Neural Link...</span>
+                </div>
+            </div>
+
+            <!-- History -->
+            <div class="flex flex-col h-1/2 overflow-hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-xs font-bold text-gray-500 flex items-center gap-2">
+                        <i class="fas fa-history"></i>
+                        Session Logs
+                    </h3>
+                    <span id="sentCount" class="text-cyan-400 font-mono text-xs">0 items</span>
+                </div>
+                <div id="historyList" class="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+                    <!-- History entries -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const state = {
+            isListening: false,
+            isSpeaking: false,
+            startTime: null,
+            timerInterval: null,
+            sentCount: 0,
+            history: JSON.parse(localStorage.getItem('orateur_history') || '[]'),
+            noiseFloor: 128, // Default middle
+            metrics: {
+                quality: 0,
+                noise: 0,
+                secondary: 0
+            }
+        };
+
+        const elements = {
+            toggleBtn: document.getElementById('toggleBtn'),
+            toggleText: document.getElementById('toggleText'),
+            statusDot: document.getElementById('statusDot'),
+            statusText: document.getElementById('statusText'),
+            timer: document.getElementById('timer'),
+            transcript: document.getElementById('transcript'),
+            historyList: document.getElementById('historyList'),
+            visualizer: document.getElementById('visualizer'),
+            qualityVal: document.getElementById('qualityVal'),
+            qualityGauge: document.getElementById('qualityGauge'),
+            noiseVal: document.getElementById('noiseVal'),
+            noiseGauge: document.getElementById('noiseGauge'),
+            secondaryVal: document.getElementById('secondaryVal'),
+            secondaryGauge: document.getElementById('secondaryGauge'),
+            speechIndicator: document.getElementById('speechIndicator'),
+            sentCount: document.getElementById('sentCount'),
+            copyBtn: document.getElementById('copyBtn'),
+            exportBtn: document.getElementById('exportBtn'),
+            clearHistory: document.getElementById('clearHistory')
+        };
+
+        let audioCtx, analyser, source, stream;
+        let recognition;
+
+        async function setupAudio() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true }
+                });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                source = audioCtx.createMediaStreamSource(stream);
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                drawVisualizer();
+                processAudio();
+            } catch (err) {
+                console.error(err);
+                alert("Microphone access denied.");
+            }
+        }
+
+        function drawVisualizer() {
+            const ctx = elements.visualizer.getContext('2d');
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            function draw() {
+                if (!state.isListening) return;
+                requestAnimationFrame(draw);
+                analyser.getByteFrequencyData(dataArray);
+
+                ctx.clearRect(0, 0, elements.visualizer.width, elements.visualizer.height);
+                const barWidth = (elements.visualizer.width / bufferLength) * 2.5;
+                let x = 0;
+
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = (dataArray[i] / 255) * elements.visualizer.height;
+                    const hue = (i / bufferLength) * 100 + 180;
+                    ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.5)`;
+                    ctx.fillRect(x, elements.visualizer.height - barHeight, barWidth, barHeight);
+                    x += barWidth + 1;
+                }
+            }
+            draw();
+        }
+
+        function processAudio() {
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            setInterval(() => {
+                if (!state.isListening) return;
+                analyser.getByteFrequencyData(dataArray);
+
+                // Calculate Volume / RMS
+                let sum = 0;
+                for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
+                let avg = sum / bufferLength;
+                let db = 20 * Math.log10(avg / 255);
+                if (isNaN(db) || db === -Infinity) db = -100;
+
+                // VAD (Voice Activity Detection) -45dB threshold
+                state.isSpeaking = db > -45;
+
+                if (state.isSpeaking) {
+                    elements.speechIndicator.style.display = 'block';
+
+                    // Signal to Noise Ratio (SNR)
+                    // If speaking, we compare current avg with noiseFloor tracked during silence
+                    let snr = avg / (state.noiseFloor || 1);
+                    let snrDb = 10 * Math.log10(snr);
+                    if (snrDb < 0) snrDb = 0;
+
+                    // Quality % based on SNR (0-40dB range)
+                    let quality = Math.min(100, Math.max(0, (snrDb / 30) * 100));
+
+                    // Secondary Voices Heuristic
+                    // Analyze energy in high frequencies (>3kHz) and low frequencies (<300Hz)
+                    // relative to human speech center (around 1kHz)
+                    let speechEnergy = 0;
+                    let otherEnergy = 0;
+                    for(let i=0; i<bufferLength; i++) {
+                        let freq = i * audioCtx.sampleRate / analyser.fftSize;
+                        if (freq > 300 && freq < 3000) speechEnergy += dataArray[i];
+                        else otherEnergy += dataArray[i];
+                    }
+                    let secondaryScore = otherEnergy / (speechEnergy || 1);
+
+                    updateMetrics(quality, snrDb, secondaryScore);
+                } else {
+                    elements.speechIndicator.style.display = 'none';
+                    // Track noise floor during silence
+                    state.noiseFloor = (state.noiseFloor * 0.95) + (avg * 0.05);
+                }
+            }, 150);
+        }
+
+        function updateMetrics(q, n, s) {
+            elements.qualityVal.innerText = Math.round(q) + '%';
+            elements.qualityGauge.style.width = q + '%';
+
+            elements.noiseVal.innerText = n.toFixed(1) + ' dB';
+            elements.noiseGauge.style.width = Math.min(100, (n / 40) * 100) + '%';
+
+            elements.secondaryVal.innerText = s.toFixed(2);
+            elements.secondaryGauge.style.width = Math.min(100, s * 50) + '%';
+        }
+
+        function setupSpeech() {
+            if (!('webkitSpeechRecognition' in window)) return;
+            recognition = new webkitSpeechRecognition();
+            recognition.lang = 'fr-FR';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onstart = () => {
+                elements.statusDot.classList.add('active');
+                elements.statusText.innerText = 'Neural Active';
+                elements.statusText.style.color = 'var(--neon-cyan)';
+            };
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        addHistory(event.results[i][0].transcript);
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                elements.transcript.innerHTML = interim ? `<span class="text-cyan-400 opacity-80">${interim}</span>` : '<span class="text-white/30 animate-pulse">Scanning voice waves...</span>';
+            };
+
+            recognition.onerror = (event) => console.error(event.error);
+            recognition.onend = () => {
+                if (state.isListening) recognition.start();
+            };
+        }
+
+        function addHistory(text) {
+            if (!text.trim()) return;
+            const phrase = text.trim();
+            const timestamp = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+            const entry = { text: phrase, time: timestamp };
+            state.history.unshift(entry);
+            state.sentCount++;
+
+            localStorage.setItem('orateur_history', JSON.stringify(state.history.slice(0, 50)));
+            renderHistory();
+            elements.sentCount.innerText = state.sentCount + ' items';
+
+            // Post to backend
+            fetch('post.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `msg=${encodeURIComponent(phrase)}&post=yes`
+            });
+        }
+
+        function renderHistory() {
+            elements.historyList.innerHTML = state.history.map(item => `
+                <div class="history-item">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[9px] font-black text-purple-400/50 font-mono">${item.time}</span>
+                        <i class="fas fa-check-double text-[8px] text-cyan-400/30"></i>
+                    </div>
+                    <p class="text-sm leading-relaxed text-gray-300">${item.text}</p>
+                </div>
+            `).join('');
+        }
+
+        elements.toggleBtn.addEventListener('click', async () => {
+            if (!state.isListening) {
+                state.isListening = true;
+                state.startTime = Date.now();
+                elements.toggleText.innerText = 'Arreter';
+                elements.toggleBtn.classList.add('active');
+
+                if (!audioCtx) await setupAudio();
+                if (!recognition) setupSpeech();
+                recognition.start();
+
+                state.timerInterval = setInterval(() => {
+                    const diff = Math.floor((Date.now() - state.startTime) / 1000);
+                    const m = String(Math.floor(diff / 60)).padStart(2, '0');
+                    const s = String(diff % 60).padStart(2, '0');
+                    elements.timer.innerText = `${m}:${s}`;
+                }, 1000);
+
+                elements.transcript.innerHTML = '<span class="text-white/30 animate-pulse">Link established. Awaiting voice...</span>';
+            } else {
+                location.reload(); // Hard reset for simplicity
+            }
+        });
+
+        elements.copyBtn.addEventListener('click', () => {
+            const txt = state.history.map(h => h.text).join('\n');
+            navigator.clipboard.writeText(txt);
+        });
+
+        elements.exportBtn.addEventListener('click', () => {
+            const txt = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            const blob = new Blob([txt], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `neural-logs-${Date.now()}.txt`;
+            a.click();
+        });
+
+        elements.clearHistory.addEventListener('click', () => {
+            state.history = [];
+            localStorage.removeItem('orateur_history');
+            renderHistory();
+        });
+
+        // Initialize
+        renderHistory();
+        elements.sentCount.innerText = state.history.length + ' items';
+
+    </script>
+</body>
+</html>
