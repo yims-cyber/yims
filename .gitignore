@@ -1,0 +1,4 @@
+node_modules/
+php_server.log
+tests_verification/*.png
+transcriptions.log

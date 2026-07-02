@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORATEUR PRO | NEURAL INTERFACE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --neon-cyan: #00f2ff;
+            --neon-purple: #bc13fe;
+            --bg-black: #050505;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --border-glow: rgba(0, 242, 255, 0.2);
+        }
+
+        body {
+            background-color: var(--bg-black);
+            background-image:
+                linear-gradient(rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: #e0e0e0;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        @media (max-width: 1024px) {
+            body {
+                overflow: auto;
+                height: auto;
+            }
+        }
+
+        body::after {
+            content: " ";
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 255, 0, 0.06));
+            z-index: 9999;
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+
+        .orbitron { font-family: 'Orbitron', sans-serif; }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            height: 100vh;
+            width: 100%;
+        }
+
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+        }
+
+        .sidebar {
+            background: rgba(0, 0, 0, 0.9);
+            border-right: 1px solid var(--border-glow);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            backdrop-filter: blur(20px);
+            z-index: 10;
+        }
+
+        .main-content {
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            overflow-y: auto;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 4px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--neon-cyan), transparent);
+            animation: scan-line 3s linear infinite;
+        }
+
+        @keyframes scan-line {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .metric-card {
+            background: rgba(0, 0, 0, 0.6);
+            border-left: 3px solid var(--neon-cyan);
+            padding: 12px;
+            border-radius: 0 4px 4px 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+
+        .metric-value {
+            font-size: 18px;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        .btn-neural {
+            background: transparent;
+            border: 1px solid var(--neon-cyan);
+            color: var(--neon-cyan);
+            padding: 12px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            transition: all 0.3s;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-neural:hover {
+            background: var(--neon-cyan);
+            color: black;
+            box-shadow: 0 0 20px var(--neon-cyan);
+        }
+
+        .btn-neural.active {
+            border-color: var(--neon-purple);
+            color: var(--neon-purple);
+        }
+
+        .btn-neural.active:hover {
+            background: var(--neon-purple);
+            color: white;
+            box-shadow: 0 0 20px var(--neon-purple);
+        }
+
+        .status-pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+
+        .pulse-red {
+            background: #ff0044;
+            box-shadow: 0 0 10px #ff0044;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        #speechIndicator {
+            font-size: 10px;
+            letter-spacing: 1px;
+            color: var(--neon-cyan);
+            display: none;
+            font-weight: bold;
+        }
+
+        .analysing {
+            animation: pulse-text 1.5s infinite;
+        }
+
+        @keyframes pulse-text {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--neon-cyan); }
+
+        #visualizer {
+            width: 100%;
+            height: 60px;
+            filter: drop-shadow(0 0 8px var(--neon-cyan));
+        }
+
+        .transcript-area {
+            font-size: 24px;
+            line-height: 1.6;
+            color: #fff;
+            min-height: 200px;
+        }
+
+        .history-item {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 12px 0;
+            display: grid;
+            grid-template-columns: 80px 1fr;
+        }
+
+        .timestamp {
+            font-family: 'Orbitron';
+            font-size: 10px;
+            color: var(--neon-purple);
+            opacity: 0.7;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 border border-neon-cyan flex items-center justify-center">
+                    <i class="fas fa-microchip text-cyan-400"></i>
+                </div>
+                <div>
+                    <h1 class="orbitron font-bold text-lg tracking-widest text-white">ORATEUR PRO</h1>
+                    <p class="text-[9px] text-cyan-500 uppercase">Neural Audio Engine v4.2</p>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <div class="metric-card">
+                    <p class="text-[10px] uppercase text-gray-500 mb-1">Signal Input (dB)</p>
+                    <div id="dbValue" class="orbitron metric-value">-∞ dB</div>
+                    <div class="w-full bg-gray-900 h-1 mt-2 overflow-hidden">
+                        <div id="dbMeter" class="h-full bg-cyan-400 transition-all duration-75" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="metric-card">
+                    <p class="text-[10px] uppercase text-gray-500 mb-1">Sound Quality</p>
+                    <div id="qualityLabel" class="orbitron metric-value text-sm">STANDBY</div>
+                    <p id="speechIndicator" class="analysing mt-1">ANALYSING SIGNAL...</p>
+                </div>
+
+                <div class="metric-card">
+                    <p class="text-[10px] uppercase text-gray-500 mb-1">Noise Rate (Taux)</p>
+                    <div id="noiseLabel" class="orbitron metric-value text-sm">0.0%</div>
+                </div>
+
+                <div class="metric-card">
+                    <p class="text-[10px] uppercase text-gray-500 mb-1">Secondary Voices (Taux)</p>
+                    <div id="secondaryVoicesLabel" class="orbitron metric-value text-sm">0.0%</div>
+                </div>
+            </div>
+
+            <div class="mt-auto space-y-3">
+                <button id="toggleBtn" class="btn-neural w-full flex items-center justify-center gap-3">
+                    <i class="fas fa-power-off"></i>
+                    <span>Connect Link</span>
+                </button>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="copyBtn" class="border border-white/10 text-[10px] py-2 hover:bg-white/5 transition orbitron">EXPORT</button>
+                    <button id="clearHistory" class="border border-white/10 text-[10px] py-2 hover:bg-red-900/20 transition orbitron">WIPE</button>
+                </div>
+            </div>
+
+            <div class="pt-4 border-t border-white/10">
+                <div class="flex justify-between text-[10px] text-gray-500 uppercase">
+                    <span>System Status</span>
+                    <span id="statusText" class="text-cyan-400">Online</span>
+                </div>
+                <div class="flex justify-between text-[10px] text-gray-500 uppercase mt-2">
+                    <span>Microphone</span>
+                    <span id="permStatus">Inactive</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main-content">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center px-4 py-2 border border-cyan-900 bg-cyan-900/10 rounded-sm">
+                        <span class="status-pulse" id="statusDot"></span>
+                        <span class="orbitron text-[11px] text-cyan-400" id="timer">00:00:00</span>
+                    </div>
+                </div>
+                <canvas id="visualizer"></canvas>
+            </div>
+
+            <div class="glass-panel flex-1 flex flex-col">
+                <div class="flex items-center gap-2 mb-4">
+                    <i class="fas fa-satellite-dish text-[10px] text-cyan-500"></i>
+                    <span class="orbitron text-[10px] text-gray-500 tracking-widest uppercase">Live Transcription Stream</span>
+                </div>
+                <div id="transcript" class="transcript-area custom-scrollbar overflow-y-auto">
+                    <span class="text-white/10 italic">Initializing neural uplink...</span>
+                </div>
+            </div>
+
+            <div class="glass-panel h-[30%] overflow-hidden flex flex-col">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-layer-group text-[10px] text-purple-500"></i>
+                        <span class="orbitron text-[10px] text-gray-500 tracking-widest uppercase">Memory Log</span>
+                    </div>
+                    <span id="sentCount" class="orbitron text-[10px] text-purple-500">PACKETS: 0</span>
+                </div>
+                <div id="historyList" class="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                    <div class="text-center py-10 text-white/5 uppercase tracking-[5px] text-[10px]">Log Empty</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const state = {
+            isListening: false,
+            isSpeaking: false,
+            startTime: null,
+            timerInterval: null,
+            sentCount: 0,
+            history: JSON.parse(localStorage.getItem('orateur_history') || '[]'),
+            noiseFloor: -70,
+            snr: 0
+        };
+
+        const elements = {
+            transcript: document.getElementById('transcript'),
+            statusText: document.getElementById('statusText'),
+            statusDot: document.getElementById('statusDot'),
+            timer: document.getElementById('timer'),
+            sentCount: document.getElementById('sentCount'),
+            toggleBtn: document.getElementById('toggleBtn'),
+            historyList: document.getElementById('historyList'),
+            visualizer: document.getElementById('visualizer'),
+            dbValue: document.getElementById('dbValue'),
+            dbMeter: document.getElementById('dbMeter'),
+            qualityLabel: document.getElementById('qualityLabel'),
+            noiseLabel: document.getElementById('noiseLabel'),
+            secondaryVoicesLabel: document.getElementById('secondaryVoicesLabel'),
+            speechIndicator: document.getElementById('speechIndicator'),
+            permStatus: document.getElementById('permStatus'),
+            copyBtn: document.getElementById('copyBtn'),
+            clearHistory: document.getElementById('clearHistory')
+        };
+
+        let audioContext, analyser, source, stream;
+
+        async function setupAudioEngine() {
+            if (!stream) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({
+                        audio: { echoCancellation: true, noiseSuppression: false, autoGainControl: true }
+                    });
+
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    source = audioContext.createMediaStreamSource(stream);
+                    analyser = audioContext.createAnalyser();
+                    analyser.fftSize = 512;
+                    source.connect(analyser);
+
+                    elements.permStatus.innerText = "GRANTED";
+                    elements.permStatus.className = "text-green-500";
+                } catch (err) {
+                    console.error(err);
+                    elements.permStatus.innerText = "DENIED";
+                    elements.permStatus.className = "text-red-500";
+                    return;
+                }
+            }
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+
+            // Set canvas resolution on each startup
+            elements.visualizer.width = elements.visualizer.offsetWidth;
+            elements.visualizer.height = elements.visualizer.offsetHeight;
+
+            function analyze() {
+                if (!state.isListening) return;
+                requestAnimationFrame(analyze);
+
+                analyser.getByteFrequencyData(dataArray);
+
+                let sum = 0;
+                for(let i = 0; i < dataArray.length; i++) sum += dataArray[i] * dataArray[i];
+                let rms = Math.sqrt(sum / dataArray.length);
+                let db = 20 * Math.log10(rms / 255);
+                if (isNaN(db) || db === -Infinity) db = -100;
+
+                elements.dbValue.innerText = `${db.toFixed(1)} dB`;
+                elements.dbMeter.style.width = `${Math.min(100, (db + 80) * 1.25)}%`;
+
+                const VAD_THRESHOLD = -45;
+                state.isSpeaking = db > VAD_THRESHOLD;
+
+                if (state.isSpeaking) {
+                    elements.speechIndicator.style.display = 'block';
+                    evaluateQuality(db);
+
+                    state.snr = db - state.noiseFloor;
+                    const noiseRate = Math.max(0, Math.min(100, 100 - (state.snr * 1.66)));
+                    elements.noiseLabel.innerText = `${noiseRate.toFixed(1)}%`;
+
+                    detectSecondaryVoices(dataArray);
+                } else {
+                    elements.speechIndicator.style.display = 'none';
+                    state.noiseFloor = (state.noiseFloor * 0.95) + (db * 0.05);
+                    elements.qualityLabel.innerText = "WAITING...";
+                    elements.qualityLabel.style.color = "gray";
+                }
+
+                drawVisualizer(dataArray);
+            }
+
+            analyze();
+        }
+
+        function evaluateQuality(db) {
+            let score = 100;
+            if (db > -5) score -= 40;
+            else if (db > -10) score -= 10;
+            if (db < -35) score -= 30;
+            if (state.snr < 15) score -= 20;
+
+            let label = "EXCELLENT";
+            let color = "var(--neon-cyan)";
+            if (score < 40) { label = "CRITICAL"; color = "#ff0044"; }
+            else if (score < 70) { label = "POOR"; color = "#ffaa00"; }
+            else if (score < 90) { label = "GOOD"; color = "#00ff88"; }
+
+            elements.qualityLabel.innerText = label;
+            elements.qualityLabel.style.color = color;
+        }
+
+        function detectSecondaryVoices(dataArray) {
+            let voiceEnergy = 0;
+            let otherEnergy = 0;
+            for(let i=0; i<dataArray.length; i++) {
+                if (i >= 4 && i <= 35) voiceEnergy += dataArray[i];
+                else otherEnergy += dataArray[i];
+            }
+            const ratio = otherEnergy / (voiceEnergy || 1);
+            const secondaryRate = Math.min(100, ratio * 100);
+            elements.secondaryVoicesLabel.innerText = `${secondaryRate.toFixed(1)}%`;
+            elements.secondaryVoicesLabel.style.color = secondaryRate > 80 ? "#ffaa00" : "var(--neon-cyan)";
+        }
+
+        function drawVisualizer(dataArray) {
+            const canvas = elements.visualizer;
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            ctx.clearRect(0, 0, width, height);
+            const barWidth = (width / dataArray.length) * 2;
+            let x = 0;
+            for(let i = 0; i < dataArray.length; i++) {
+                const barHeight = (dataArray[i] / 255) * height;
+                const hue = 190 + (i / dataArray.length) * 40;
+                ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.8)`;
+                ctx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
+                x += barWidth;
+            }
+        }
+
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+            recognition.onstart = () => {
+                elements.statusText.innerText = "ACTIVE";
+                elements.statusDot.classList.add('pulse-red');
+            };
+            recognition.onend = () => {
+                if (state.isListening) recognition.start();
+                else {
+                    elements.statusText.innerText = "STANDBY";
+                    elements.statusDot.classList.remove('pulse-red');
+                }
+            };
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        processFinalPhrase(event.results[i][0].transcript.trim());
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                if (interimTranscript) {
+                    elements.transcript.innerHTML = `<span class="text-cyan-400 opacity-60">${interimTranscript}</span>`;
+                }
+            };
+        }
+
+        function processFinalPhrase(phrase) {
+            if (!phrase) return;
+            phrase = phrase.charAt(0).toUpperCase() + phrase.slice(1);
+            const item = {
+                id: Date.now(),
+                text: phrase,
+                time: new Date().toLocaleTimeString('fr-FR', { hour12: false })
+            };
+            state.history.unshift(item);
+            if (state.history.length > 50) state.history.pop();
+            localStorage.setItem('orateur_history', JSON.stringify(state.history));
+            renderHistory();
+            state.sentCount++;
+            elements.sentCount.innerText = `PACKETS: ${state.sentCount}`;
+            elements.transcript.innerHTML = `<span class="text-white">${phrase}</span>`;
+            fetch('post.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `msg=${encodeURIComponent(phrase)}&post=yes`
+            }).catch(() => {});
+        }
+
+        elements.toggleBtn.addEventListener('click', async () => {
+            if (!state.isListening) {
+                state.isListening = true;
+                state.startTime = Date.now();
+                state.timerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+                    const h = String(Math.floor(elapsed/3600)).padStart(2,'0');
+                    const m = String(Math.floor((elapsed%3600)/60)).padStart(2,'0');
+                    const s = String(elapsed%60).padStart(2,'0');
+                    elements.timer.innerText = `${h}:${m}:${s}`;
+                }, 1000);
+                elements.toggleBtn.innerHTML = '<i class="fas fa-stop"></i> <span>Disconnect</span>';
+                elements.toggleBtn.classList.add('active');
+
+                await setupAudioEngine();
+                if (recognition) recognition.start();
+                elements.transcript.innerHTML = '<span class="text-cyan-400 animate-pulse">Establishing uplink...</span>';
+            } else {
+                state.isListening = false;
+                clearInterval(state.timerInterval);
+                elements.toggleBtn.innerHTML = '<i class="fas fa-power-off"></i> <span>Connect Link</span>';
+                elements.toggleBtn.classList.remove('active');
+                if (recognition) recognition.stop();
+                elements.transcript.innerHTML = '<span class="text-white/20 italic">Offline.</span>';
+                elements.statusDot.classList.remove('pulse-red');
+                elements.statusText.innerText = "OFFLINE";
+            }
+        });
+
+        function renderHistory() {
+            elements.historyList.innerHTML = state.history.map(item => `
+                <div class="history-item">
+                    <span class="timestamp">${item.time}</span>
+                    <p class="text-white/80">${item.text}</p>
+                </div>
+            `).join('') || '<div class="text-center py-10 text-white/5 uppercase tracking-[5px] text-[10px]">Log Empty</div>';
+        }
+
+        elements.copyBtn.addEventListener('click', () => {
+            const text = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = elements.copyBtn.innerText;
+                elements.copyBtn.innerText = "COPIED";
+                setTimeout(() => elements.copyBtn.innerText = originalText, 2000);
+            });
+        });
+
+        elements.clearHistory.addEventListener('click', () => {
+            if (confirm('Format session memory?')) {
+                state.history = [];
+                localStorage.setItem('orateur_history', '[]');
+                renderHistory();
+                state.sentCount = 0;
+                elements.sentCount.innerText = "PACKETS: 0";
+            }
+        });
+
+        window.addEventListener('resize', () => {
+            elements.visualizer.width = elements.visualizer.offsetWidth;
+            elements.visualizer.height = elements.visualizer.offsetHeight;
+        });
+
+        renderHistory();
+    </script>
+</body>
+</html>
