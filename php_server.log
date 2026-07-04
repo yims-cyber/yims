@@ -1,0 +1,10 @@
+[Sat Jul  4 12:25:53 2026] PHP 8.3.6 Development Server (http://localhost:8000) started
+[Sat Jul  4 12:26:04 2026] [::1]:39750 Accepted
+[Sat Jul  4 12:26:04 2026] [::1]:39750 [200]: HEAD /index.html
+[Sat Jul  4 12:26:04 2026] [::1]:39750 Closing
+[Sat Jul  4 12:29:50 2026] [::1]:49866 Accepted
+[Sat Jul  4 12:29:50 2026] [::1]:49866 [200]: GET /index.html
+[Sat Jul  4 12:29:50 2026] [::1]:49866 Closing
+[Sat Jul  4 12:35:28 2026] [::1]:34724 Accepted
+[Sat Jul  4 12:35:28 2026] [::1]:34724 [200]: GET /index.html
+[Sat Jul  4 12:35:28 2026] [::1]:34724 Closing
