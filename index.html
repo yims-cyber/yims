@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORATEUR PRO | NEURAL INTERFACE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --accent-cyan: #00f2ff;
+            --accent-purple: #bc13fe;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text-main: #e0e0e0;
+            --font-size-base: 13px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            font-size: var(--font-size-base);
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Neural Cinematic Grid Background */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(to right, rgba(0, 242, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 242, 255, 0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Scanline Animation */
+        body::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%,
+                rgba(0, 0, 0, 0.1) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.3;
+        }
+
+        h1, h2, h3, .orbitron {
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+        }
+
+        .cyan-glow {
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+            color: var(--accent-cyan);
+        }
+
+        .purple-glow {
+            text-shadow: 0 0 10px rgba(188, 19, 254, 0.5);
+            color: var(--accent-purple);
+        }
+
+        .border-cyan { border-color: rgba(0, 242, 255, 0.3); }
+        .border-purple { border-color: rgba(188, 19, 254, 0.3); }
+
+        /* Layout */
+        .app-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            height: 100vh;
+            width: 100%;
+        }
+
+        .sidebar {
+            border-right: 1px solid var(--glass-border);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            overflow-y: auto;
+        }
+
+        .main-content {
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            overflow-y: hidden;
+            position: relative;
+        }
+
+        /* Mobile / Tablet Responsive */
+        @media (max-width: 1024px) {
+            body {
+                overflow: auto;
+                height: auto;
+            }
+            .app-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid var(--glass-border);
+            }
+            .main-content {
+                height: auto;
+                overflow: visible;
+            }
+        }
+
+        .metric-card {
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        #visualizer {
+            width: 100%;
+            height: 100px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+
+        .scroll-custom::-webkit-scrollbar {
+            width: 4px;
+        }
+        .scroll-custom::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        .scroll-custom::-webkit-scrollbar-thumb {
+            background: var(--accent-cyan);
+            border-radius: 2px;
+        }
+
+        @keyframes pulse-cyan {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; text-shadow: 0 0 15px var(--accent-cyan); }
+            100% { opacity: 0.4; }
+        }
+
+        .analysing-signal {
+            animation: pulse-cyan 1.5s infinite;
+            display: none;
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent-cyan);
+            color: black;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            font-weight: bold;
+            opacity: 0;
+            transition: all 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-10px);
+        }
+
+        .history-item {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div id="toast">SYSTÈME MIS À JOUR</div>
+
+    <div class="app-container">
+        <!-- Sidebar: Audio Engine & Controls -->
+        <aside class="sidebar glass">
+            <div class="header">
+                <h1 class="text-xl font-black cyan-glow italic">Orateur Pro</h1>
+                <p class="text-[10px] opacity-50 tracking-[4px] uppercase">Neural Transcription v2.0</p>
+            </div>
+
+            <div class="engine-status flex items-center gap-3 metric-card">
+                <div id="statusDot" class="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_red]"></div>
+                <div class="flex flex-col">
+                    <span id="statusText" class="orbitron text-[10px] font-bold">Système en veille</span>
+                    <span id="timer" class="text-xs font-mono opacity-60">00:00:00</span>
+                </div>
+            </div>
+
+            <div class="audio-metrics space-y-4">
+                <h3 class="text-xs opacity-40 orbitron">Analyse du Signal</h3>
+
+                <div class="metric-card space-y-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-[10px] uppercase opacity-60">Niveau d'entrée</span>
+                        <span id="dbValue" class="font-mono text-xs">-∞ dB</span>
+                    </div>
+                    <div class="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div id="dbMeter" class="h-full bg-cyan-400 transition-all duration-75" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="metric-card">
+                        <span class="text-[9px] uppercase opacity-40 block mb-1">Qualité</span>
+                        <span id="qualityLabel" class="orbitron text-xs text-gray-500">Attente...</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="text-[9px] uppercase opacity-40 block mb-1">Niveau Bruit</span>
+                        <span id="noiseLabel" class="orbitron text-xs text-gray-500">Attente...</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="text-[9px] uppercase opacity-40 block mb-1">Voix Secondaire</span>
+                        <span id="secondaryLabel" class="orbitron text-xs text-gray-500">Attente...</span>
+                    </div>
+                    <div class="metric-card">
+                        <span class="text-[9px] uppercase opacity-40 block mb-1">Ratio SNR</span>
+                        <span id="snrLabel" class="orbitron text-xs text-gray-500">Attente...</span>
+                    </div>
+                </div>
+
+                <canvas id="visualizer"></canvas>
+            </div>
+
+            <div class="controls mt-auto space-y-3">
+                <button id="toggleBtn" class="w-full py-4 glass border-cyan hover:bg-cyan-500/10 transition-all orbitron text-xs font-bold cyan-glow flex items-center justify-center gap-3">
+                    <i id="toggleIcon" class="fas fa-power-off"></i>
+                    <span id="toggleText">Initialiser le moteur</span>
+                </button>
+
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="copyBtn" class="py-2 glass text-[10px] uppercase hover:bg-white/5 transition-all">Copier le texte</button>
+                    <button id="exportBtn" class="py-2 glass text-[10px] uppercase hover:bg-white/5 transition-all">Exporter le log</button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content: Live Feed & History -->
+        <main class="main-content">
+            <div id="speechIndicator" class="analysing-signal orbitron text-[10px] cyan-glow">
+                <i class="fas fa-wave-square mr-2"></i> Analyse du Signal en cours...
+            </div>
+
+            <!-- Live Transcript Area -->
+            <div class="flex-1 flex flex-col justify-center items-center text-center p-8">
+                <div class="relative w-full max-w-3xl">
+                    <div id="transcript" class="text-3xl md:text-5xl font-light leading-relaxed min-h-[1.5em] tracking-tight">
+                        <span class="opacity-10 italic">En attente de connexion...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session History -->
+            <div class="h-1/3 glass rounded-2xl p-6 flex flex-col gap-4">
+                <div class="flex justify-between items-center border-b border-white/5 pb-3">
+                    <h3 class="orbitron text-xs opacity-60">Cache Neural / Historique</h3>
+                    <button id="clearHistory" class="text-[9px] uppercase opacity-30 hover:opacity-100 transition-all">Vider le buffer</button>
+                </div>
+                <div id="historyList" class="flex-1 overflow-y-auto scroll-custom space-y-4 pr-2">
+                    <!-- History entries -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // --- INITIAL STATE ---
+        const state = {
+            isListening: false,
+            startTime: null,
+            timerInterval: null,
+            history: JSON.parse(localStorage.getItem('orateur_history') || '[]'),
+            vad: {
+                threshold: -45,
+                hangover: 500,
+                lastSpeechTime: 0,
+                isSpeaking: false
+            },
+            metrics: {
+                noiseFloor: -100,
+                snr: 0,
+                secondaryVoice: 0,
+                quality: 'N/A'
+            }
+        };
+
+        const elements = {
+            transcript: document.getElementById('transcript'),
+            statusText: document.getElementById('statusText'),
+            statusDot: document.getElementById('statusDot'),
+            timer: document.getElementById('timer'),
+            toggleBtn: document.getElementById('toggleBtn'),
+            toggleIcon: document.getElementById('toggleIcon'),
+            toggleText: document.getElementById('toggleText'),
+            historyList: document.getElementById('historyList'),
+            visualizer: document.getElementById('visualizer'),
+            dbValue: document.getElementById('dbValue'),
+            dbMeter: document.getElementById('dbMeter'),
+            qualityLabel: document.getElementById('qualityLabel'),
+            noiseLabel: document.getElementById('noiseLabel'),
+            secondaryLabel: document.getElementById('secondaryLabel'),
+            snrLabel: document.getElementById('snrLabel'),
+            speechIndicator: document.getElementById('speechIndicator'),
+            copyBtn: document.getElementById('copyBtn'),
+            exportBtn: document.getElementById('exportBtn'),
+            clearHistory: document.getElementById('clearHistory')
+        };
+
+        // UI Logic and placeholders for next steps
+        function renderHistory() {
+            elements.historyList.innerHTML = state.history.map(item => `
+                <div class="history-item flex gap-4 items-start border-l-2 border-purple-500/30 pl-4 py-1">
+                    <span class="font-mono text-[9px] opacity-30 mt-1">${item.time}</span>
+                    <p class="text-sm opacity-80">${item.text}</p>
+                </div>
+            `).join('') || '<div class="text-center py-10 opacity-10 text-xs">NO DATA IN CACHE</div>';
+        }
+
+        renderHistory();
+
+        // Canvas setup
+        function resizeCanvas() {
+            elements.visualizer.width = elements.visualizer.offsetWidth;
+            elements.visualizer.height = elements.visualizer.offsetHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // --- AUDIO ENGINE ---
+        let audioContext, analyser, source, stream;
+        const dataArray = new Uint8Array(128); // Pre-allocated
+
+        async function setupAudioEngine() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
+
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                processAudio();
+            } catch (err) {
+                console.error("Audio Engine Error:", err);
+                elements.statusText.innerText = "Access Denied";
+            }
+        }
+
+        function processAudio() {
+            if (!state.isListening) return;
+            requestAnimationFrame(processAudio);
+
+            analyser.getByteFrequencyData(dataArray);
+
+            // 1. Calculate RMS & dB
+            let sumSquares = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                let norm = dataArray[i] / 255;
+                sumSquares += norm * norm;
+            }
+            let rms = Math.sqrt(sumSquares / dataArray.length);
+            let db = 20 * Math.log10(rms || 0.000001);
+
+            state.metrics.db = db;
+            updateAudioUI(db);
+
+            // 2. VAD Logic
+            const now = Date.now();
+            if (db > state.vad.threshold) {
+                state.vad.isSpeaking = true;
+                state.vad.lastSpeechTime = now;
+            } else if (now - state.vad.lastSpeechTime > state.vad.hangover) {
+                state.vad.isSpeaking = false;
+            }
+
+            // 3. Noise Floor & SNR
+            if (!state.vad.isSpeaking) {
+                // Tracking noise floor during silence (exponential moving average)
+                state.metrics.noiseFloor = state.metrics.noiseFloor * 0.95 + db * 0.05;
+            } else {
+                // SNR = Signal Level - Noise Floor
+                state.metrics.snr = db - state.metrics.noiseFloor;
+
+                // 4. Secondary Voice Detection (Energy outside 300Hz - 3kHz)
+                // We map bin index to frequency. Fs = 44100 (typical), FFT = 256. Bin resolution = 44100 / 256 ~= 172Hz.
+                // Low: < 300Hz (Bins 0, 1). High: > 3kHz (Bins > 17)
+                let lowEnergy = (dataArray[0] + dataArray[1]) / 2;
+                let highEnergy = 0;
+                for (let i = 18; i < dataArray.length; i++) highEnergy += dataArray[i];
+                highEnergy = highEnergy / (dataArray.length - 18);
+
+                state.metrics.secondaryVoice = (lowEnergy + highEnergy) / 255;
+            }
+
+            drawVisualizer();
+            updateAdvancedMetrics();
+        }
+
+        function updateAudioUI(db) {
+            elements.dbValue.innerText = `${db.toFixed(1)} dB`;
+            let percentage = Math.max(0, (db + 60) * 1.66);
+            elements.dbMeter.style.width = `${percentage}%`;
+            elements.dbMeter.style.backgroundColor = db > -10 ? '#ef4444' : 'var(--accent-cyan)';
+
+            elements.speechIndicator.style.display = state.vad.isSpeaking ? 'block' : 'none';
+        }
+
+        function updateAdvancedMetrics() {
+            if (!state.vad.isSpeaking) {
+                elements.qualityLabel.innerText = "SILENCE";
+                elements.qualityLabel.className = "orbitron text-xs text-gray-500";
+                elements.snrLabel.innerText = "---";
+                return;
+            }
+
+            // SNR Display
+            elements.snrLabel.innerText = `${state.metrics.snr.toFixed(1)} dB`;
+
+            // Quality Assessment
+            let quality = "OPTIMALE";
+            let colorClass = "text-cyan-400";
+
+            if (state.metrics.snr < 15) {
+                quality = "CRITIQUE";
+                colorClass = "text-red-500";
+            } else if (state.metrics.snr < 25) {
+                quality = "MOYENNE";
+                colorClass = "text-yellow-500";
+            }
+
+            elements.qualityLabel.innerText = quality;
+            elements.qualityLabel.className = `orbitron text-xs ${colorClass}`;
+
+            // Noise Label
+            let noise = "FAIBLE";
+            if (state.metrics.noiseFloor > -50) noise = "ÉLEVÉ";
+            else if (state.metrics.noiseFloor > -65) noise = "MODÉRÉ";
+            elements.noiseLabel.innerText = noise;
+
+            // Secondary Voice
+            let secVoice = (state.metrics.secondaryVoice * 100).toFixed(0);
+            elements.secondaryLabel.innerText = `${secVoice}%`;
+            elements.secondaryLabel.className = `orbitron text-xs ${secVoice > 20 ? 'text-purple-400' : 'text-gray-500'}`;
+        }
+
+        function drawVisualizer() {
+            const ctx = elements.visualizer.getContext('2d');
+            const { width, height } = elements.visualizer;
+            ctx.clearRect(0, 0, width, height);
+
+            const barWidth = width / dataArray.length;
+            for (let i = 0; i < dataArray.length; i++) {
+                const barHeight = (dataArray[i] / 255) * height;
+                const hue = 180 + (i / dataArray.length) * 100;
+                ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.8)`;
+                ctx.fillRect(i * barWidth, height - barHeight, barWidth - 1, barHeight);
+            }
+        }
+
+        // --- SPEECH RECOGNITION ---
+        let recognition;
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = true;
+            recognition.continuous = true;
+
+            recognition.onstart = () => updateSystemStatus('active');
+            recognition.onend = () => state.isListening ? recognition.start() : updateSystemStatus('ready');
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        savePhrase(event.results[i][0].transcript.trim());
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                    }
+                }
+                if (interimTranscript) {
+                    elements.transcript.innerHTML = `<span class="opacity-50">${interimTranscript}</span>`;
+                }
+            };
+        }
+
+        function savePhrase(phrase) {
+            if (!phrase) return;
+            const item = {
+                id: Date.now(),
+                text: phrase.charAt(0).toUpperCase() + phrase.slice(1),
+                time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+
+            state.history.unshift(item);
+            if (state.history.length > 50) state.history.pop();
+            localStorage.setItem('orateur_history', JSON.stringify(state.history));
+
+            renderHistory();
+            elements.transcript.innerText = item.text;
+
+            // Push to backend
+            fetch('post.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `msg=${encodeURIComponent(item.text)}&post=yes`
+            }).catch(() => {});
+        }
+
+        // --- UI CONTROLS ---
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        function updateSystemStatus(status) {
+            if (status === 'active') {
+                elements.statusDot.className = "w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_10px_#00f2ff]";
+                elements.statusText.innerText = "Lien Neural Actif";
+            } else {
+                elements.statusDot.className = "w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_red]";
+                elements.statusText.innerText = "Système en veille";
+            }
+        }
+
+        elements.toggleBtn.addEventListener('click', async () => {
+            if (!state.isListening) {
+                state.isListening = true;
+                state.startTime = Date.now();
+                state.timerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+                    const h = Math.floor(elapsed / 3600).toString().padStart(2, '0');
+                    const m = Math.floor((elapsed % 3600) / 60).toString().padStart(2, '0');
+                    const s = (elapsed % 60).toString().padStart(2, '0');
+                    elements.timer.innerText = `${h}:${m}:${s}`;
+                }, 1000);
+
+                elements.toggleText.innerText = "Terminer le lien";
+                elements.toggleIcon.className = "fas fa-stop";
+                elements.toggleBtn.classList.add('border-red-500', 'text-red-500');
+                elements.toggleBtn.classList.remove('border-cyan', 'text-cyan-400');
+
+                if (!audioContext) await setupAudioEngine();
+                else processAudio(); // Restart loop if already setup
+
+                if (recognition) recognition.start();
+                elements.transcript.innerHTML = '<span class="opacity-30 italic animate-pulse">Synchronisation des voies neurales...</span>';
+            } else {
+                state.isListening = false;
+                clearInterval(state.timerInterval);
+                elements.toggleText.innerText = "Initialiser le moteur";
+                elements.toggleIcon.className = "fas fa-power-off";
+                elements.toggleBtn.classList.remove('border-red-500', 'text-red-500');
+                elements.toggleBtn.classList.add('border-cyan', 'text-cyan-400');
+
+                if (recognition) recognition.stop();
+                elements.transcript.innerHTML = '<span class="opacity-10 italic">Lien neural rompu.</span>';
+            }
+        });
+
+        elements.copyBtn.addEventListener('click', () => {
+            const text = state.history.map(h => h.text).join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                showToast("COPIÉ DANS LE PRESSE-PAPIER");
+            });
+        });
+
+        elements.exportBtn.addEventListener('click', () => {
+            const text = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `orateur-session-${new Date().toISOString().slice(0,10)}.txt`;
+            a.click();
+        });
+
+        elements.clearHistory.addEventListener('click', () => {
+            state.history = [];
+            localStorage.setItem('orateur_history', '[]');
+            renderHistory();
+        });
+    </script>
+</body>
+</html>
