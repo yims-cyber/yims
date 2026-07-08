@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎤 Orateur Pro - Neural Cinematic Edition</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #050505;
+            --accent-cyan: #00f2ff;
+            --accent-purple: #bc13fe;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --font-main: 'Inter', sans-serif;
+            --font-display: 'Orbitron', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image:
+                linear-gradient(rgba(0, 242, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 255, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: #e0e0e0;
+            font-family: var(--font-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Scanline Overlay */
+        body::before {
+            content: " ";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.15;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            width: 100%;
+            height: 100%;
+            max-width: 1600px;
+            gap: 1px;
+            background: var(--glass-border);
+        }
+
+        .sidebar {
+            background: rgba(5, 5, 5, 0.8);
+            backdrop-filter: blur(40px);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            border-right: 1px solid var(--glass-border);
+            overflow-y: auto;
+        }
+
+        .main-content {
+            background: rgba(5, 5, 5, 0.4);
+            backdrop-filter: blur(20px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .glass-panel {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .glass-panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2px;
+            height: 100%;
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+            opacity: 0.5;
+        }
+
+        h1, h2, h3, .display-font {
+            font-family: var(--font-display);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .metric-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 1rem;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .metric-value {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--accent-cyan);
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.5);
+        }
+
+        .btn-neural {
+            background: transparent;
+            border: 1px solid var(--accent-cyan);
+            color: var(--accent-cyan);
+            padding: 1rem;
+            border-radius: 4px;
+            font-family: var(--font-display);
+            font-weight: bold;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-shadow: 0 0 5px var(--accent-cyan);
+            box-shadow: inset 0 0 10px rgba(0, 242, 255, 0.2);
+        }
+
+        .btn-neural:hover {
+            background: var(--accent-cyan);
+            color: #000;
+            box-shadow: 0 0 20px var(--accent-cyan);
+        }
+
+        .btn-neural.active {
+            border-color: var(--accent-purple);
+            color: var(--accent-purple);
+            text-shadow: 0 0 5px var(--accent-purple);
+            box-shadow: inset 0 0 10px rgba(188, 19, 254, 0.2);
+        }
+
+        .btn-neural.active:hover {
+            background: var(--accent-purple);
+            color: #fff;
+            box-shadow: 0 0 20px var(--accent-purple);
+        }
+
+        #visualizer {
+            width: 100%;
+            height: 120px;
+            filter: drop-shadow(0 0 10px var(--accent-cyan));
+        }
+
+        #transcript-container {
+            flex: 1;
+            padding: 3rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        #transcript {
+            font-size: 2.5rem;
+            font-weight: 800;
+            line-height: 1.2;
+            background: linear-gradient(90deg, #fff, #888);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            max-width: 1000px;
+        }
+
+        .history-panel {
+            height: 250px;
+            border-top: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.4);
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            gap: 1rem;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Toast Notification */
+        #toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: var(--accent-cyan);
+            color: #000;
+            padding: 1rem 2rem;
+            border-radius: 4px;
+            font-family: var(--font-display);
+            font-weight: bold;
+            transform: translateY(150%);
+            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 1000;
+            box-shadow: 0 0 30px rgba(0, 242, 255, 0.4);
+        }
+
+        #toast.show {
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            body {
+                overflow: auto;
+                height: auto;
+            }
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+            .sidebar {
+                border-right: none;
+                border-bottom: 1px solid var(--glass-border);
+            }
+            #transcript {
+                font-size: 1.8rem;
+            }
+            #transcript-container {
+                padding: 2rem;
+                min-height: 400px;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--accent-cyan);
+            border-radius: 2px;
+        }
+
+        #speechIndicator {
+            display: none;
+            color: var(--accent-cyan);
+            font-family: var(--font-display);
+            font-size: 0.7rem;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.4; }
+            50% { opacity: 1; }
+            100% { opacity: 0.4; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="toast">ACTION COMPLÉTÉE</div>
+
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded bg-cyan-500 flex items-center justify-center shadow-[0_0_15px_rgba(0,242,255,0.5)]">
+                    <i class="fas fa-microchip text-black"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-black text-white">ORATEUR PRO</h1>
+                    <p class="text-[10px] text-cyan-400 opacity-70 tracking-widest">NEURAL ENGINE v4.0</p>
+                </div>
+            </div>
+
+            <div class="glass-panel space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xs font-bold opacity-50">Signal Status</h3>
+                    <span id="speechIndicator"><i class="fas fa-broadcast-tower mr-1"></i> ANALYSING SIGNAL...</span>
+                </div>
+                <canvas id="visualizer"></canvas>
+                <div class="flex justify-between text-[10px] font-mono">
+                    <span id="hzLabel">0 HZ</span>
+                    <span id="dbLabel">-∞ DB</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-3">
+                <div class="metric-card">
+                    <span class="text-[10px] opacity-50 font-bold">QUALITÉ DU SON</span>
+                    <span id="qualityMetric" class="metric-value">---</span>
+                </div>
+                <div class="metric-card">
+                    <span class="text-[10px] opacity-50 font-bold">TAUX DE BRUIT (SNR)</span>
+                    <span id="noiseMetric" class="metric-value">---</span>
+                </div>
+                <div class="metric-card">
+                    <span class="text-[10px] opacity-50 font-bold">VOIX SECONDAIRES</span>
+                    <span id="secondaryVoicesMetric" class="metric-value">---</span>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2 mt-auto">
+                <button id="toggleBtn" class="btn-neural">
+                    <i class="fas fa-play mr-2"></i> INITIALISER SYSTÈME
+                </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="copyBtn" class="bg-white/5 hover:bg-white/10 p-3 rounded text-[10px] font-bold uppercase tracking-wider transition-all">
+                        <i class="fas fa-copy mr-1"></i> Copier
+                    </button>
+                    <button id="exportBtn" class="bg-white/5 hover:bg-white/10 p-3 rounded text-[10px] font-bold uppercase tracking-wider transition-all">
+                        <i class="fas fa-file-export mr-1"></i> Export
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="p-6 border-bottom border-white/5 flex justify-between items-center">
+                <div class="flex gap-6">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] opacity-40 font-bold">SESSION TIMER</span>
+                        <span id="timer" class="font-display text-sm">00:00:00</span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[10px] opacity-40 font-bold">PHRASES</span>
+                        <span id="sentenceCount" class="font-display text-sm text-cyan-400">0</span>
+                    </div>
+                </div>
+                <div id="statusBadge" class="flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-white/5">
+                    <div id="statusDot" class="w-1.5 h-1.5 rounded-full bg-gray-500"></div>
+                    <span id="statusText" class="text-[9px] font-bold uppercase tracking-tighter">Standby</span>
+                </div>
+            </header>
+
+            <div id="transcript-container">
+                <div id="transcript">
+                    <span class="opacity-20 italic font-light">SYSTEM READY. WAITING FOR VOICE INPUT...</span>
+                </div>
+            </div>
+
+            <div class="history-panel">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xs font-bold opacity-30">Journal de session</h3>
+                    <button id="clearHistory" class="text-[9px] opacity-30 hover:opacity-100 transition-all uppercase font-black">Effacer Log</button>
+                </div>
+                <div id="historyList" class="space-y-1">
+                    <!-- History entries -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const state = {
+            listening: false,
+            speaking: false,
+            startTime: null,
+            timerId: null,
+            sentences: 0,
+            history: JSON.parse(localStorage.getItem('orateur_history') || '[]'),
+            noiseFloor: -100,
+            lastVadTime: 0
+        };
+
+        const elements = {
+            toggleBtn: document.getElementById('toggleBtn'),
+            transcript: document.getElementById('transcript'),
+            historyList: document.getElementById('historyList'),
+            timer: document.getElementById('timer'),
+            sentenceCount: document.getElementById('sentenceCount'),
+            statusText: document.getElementById('statusText'),
+            statusDot: document.getElementById('statusDot'),
+            statusBadge: document.getElementById('statusBadge'),
+            visualizer: document.getElementById('visualizer'),
+            qualityMetric: document.getElementById('qualityMetric'),
+            noiseMetric: document.getElementById('noiseMetric'),
+            secondaryVoicesMetric: document.getElementById('secondaryVoicesMetric'),
+            hzLabel: document.getElementById('hzLabel'),
+            dbLabel: document.getElementById('dbLabel'),
+            speechIndicator: document.getElementById('speechIndicator'),
+            toast: document.getElementById('toast'),
+            copyBtn: document.getElementById('copyBtn'),
+            exportBtn: document.getElementById('exportBtn'),
+            clearHistory: document.getElementById('clearHistory')
+        };
+
+        // --- AUDIO ENGINE ---
+        let audioCtx, analyser, dataArray, source, stream;
+
+        async function initAudio() {
+            if (audioCtx) return;
+
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+                });
+
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                source = audioCtx.createMediaStreamSource(stream);
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 512;
+                source.connect(analyser);
+
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+
+                processAudio();
+            } catch (err) {
+                console.error("Audio init error:", err);
+                showToast("ERREUR MICROPHONE");
+            }
+        }
+
+        function resizeCanvas() {
+            elements.visualizer.width = elements.visualizer.clientWidth;
+            elements.visualizer.height = elements.visualizer.clientHeight;
+        }
+
+        function processAudio() {
+            if (!audioCtx) return;
+            requestAnimationFrame(processAudio);
+
+            analyser.getByteFrequencyData(dataArray);
+
+            // Calculate Volume (dB)
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            let avg = sum / dataArray.length;
+            let db = 20 * Math.log10(avg / 255);
+            if (isNaN(db) || db === -Infinity) db = -100;
+
+            elements.dbLabel.innerText = `${db.toFixed(1)} dB`;
+
+            // Find peak frequency
+            let maxEnergy = 0;
+            let peakFreq = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                if (dataArray[i] > maxEnergy) {
+                    maxEnergy = dataArray[i];
+                    peakFreq = i * (audioCtx.sampleRate / analyser.fftSize);
+                }
+            }
+            elements.hzLabel.innerText = `${Math.round(peakFreq)} Hz`;
+
+            // Voice Activity Detection (VAD)
+            // Human voice range is approx 80Hz to 3000Hz
+            // We'll look at bins representing this range
+            const sampleRate = audioCtx.sampleRate;
+            const binSize = sampleRate / analyser.fftSize;
+
+            let voiceEnergy = 0;
+            let totalEnergy = 0;
+            let secondaryEnergy = 0;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                const freq = i * binSize;
+                const energy = dataArray[i];
+                totalEnergy += energy;
+
+                if (freq >= 300 && freq <= 3000) {
+                    voiceEnergy += energy;
+                } else if (freq > 3000 && freq < 8000) {
+                    secondaryEnergy += energy;
+                }
+            }
+
+            const currentSpeaking = db > -45;
+
+            if (currentSpeaking) {
+                state.speaking = true;
+                state.lastVadTime = Date.now();
+                elements.speechIndicator.style.display = 'block';
+                updateMetrics(db, voiceEnergy, totalEnergy, secondaryEnergy);
+            } else {
+                // Hangover of 500ms
+                if (Date.now() - state.lastVadTime > 500) {
+                    state.speaking = false;
+                    elements.speechIndicator.style.display = 'none';
+                    // Update noise floor during silence
+                    state.noiseFloor = state.noiseFloor * 0.95 + db * 0.05;
+                    resetMetricsDisplay();
+                }
+            }
+
+            drawVisualizer();
+        }
+
+        function updateMetrics(db, voiceEnergy, totalEnergy, secondaryEnergy) {
+            // SNR Calculation
+            const snr = db - state.noiseFloor;
+            elements.noiseMetric.innerText = `${snr.toFixed(1)} dB`;
+
+            // Sound Quality based on SNR and DB level
+            let quality = "MÉDIOCRE";
+            let color = "#ef4444";
+
+            if (snr > 25 && db > -25 && db < -5) {
+                quality = "EXCELLENTE";
+                color = "#00f2ff";
+            } else if (snr > 15) {
+                quality = "BONNE";
+                color = "#22c55e";
+            } else if (snr > 5) {
+                quality = "PASSABLE";
+                color = "#f59e0b";
+            }
+
+            elements.qualityMetric.innerText = quality;
+            elements.qualityMetric.style.color = color;
+
+            // Secondary Voices / Background Noise approximation
+            const secondaryRatio = secondaryEnergy / (voiceEnergy || 1);
+            let secStatus = "AUCUNE";
+            if (secondaryRatio > 0.5) secStatus = "ÉLEVÉ";
+            else if (secondaryRatio > 0.2) secStatus = "DÉTECTÉ";
+
+            elements.secondaryVoicesMetric.innerText = secStatus;
+        }
+
+        function resetMetricsDisplay() {
+            elements.qualityMetric.innerText = "SILENCE";
+            elements.qualityMetric.style.color = "";
+            elements.noiseMetric.innerText = "---";
+            elements.secondaryVoicesMetric.innerText = "---";
+        }
+
+        function drawVisualizer() {
+            const canvas = elements.visualizer;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            const barWidth = (w / dataArray.length) * 2;
+            let x = 0;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                const barHeight = (dataArray[i] / 255) * h;
+
+                const grad = ctx.createLinearGradient(0, h, 0, h - barHeight);
+                grad.addColorStop(0, '#bc13fe');
+                grad.addColorStop(1, '#00f2ff');
+
+                ctx.fillStyle = grad;
+                ctx.fillRect(x, h - barHeight, barWidth - 1, barHeight);
+                x += barWidth;
+            }
+        }
+
+        // --- SPEECH RECOGNITION ---
+        let recognition;
+        if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
+            recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+            recognition.lang = 'fr-FR';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onstart = () => {
+                updateUIStatus('active');
+            };
+
+            recognition.onend = () => {
+                if (state.listening) recognition.start();
+                else updateUIStatus('standby');
+            };
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        savePhrase(event.results[i][0].transcript);
+                    } else {
+                        interim += event.results[i][0].transcript;
+                    }
+                }
+                if (interim) {
+                    elements.transcript.innerHTML = `<span class="opacity-100">${interim.toUpperCase()}</span>`;
+                }
+            };
+
+            recognition.onerror = (err) => {
+                console.error("Speech Error:", err);
+                if (err.error === 'not-allowed') showToast("MICROPHONE BLOQUÉ");
+            };
+        }
+
+        function savePhrase(text) {
+            text = text.trim();
+            if (!text) return;
+
+            const phrase = text.charAt(0).toUpperCase() + text.slice(1);
+            state.sentences++;
+            elements.sentenceCount.innerText = state.sentences;
+            elements.transcript.innerHTML = `<span class="opacity-100">${phrase.toUpperCase()}</span>`;
+
+            const item = {
+                id: Date.now(),
+                text: phrase,
+                time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+
+            state.history.unshift(item);
+            if (state.history.length > 50) state.history.pop();
+            localStorage.setItem('orateur_history', JSON.stringify(state.history));
+            renderHistory();
+
+            // Backend Log
+            fetch('post.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `msg=${encodeURIComponent(phrase)}&post=yes`
+            }).catch(e => console.warn("Backend log failed"));
+        }
+
+        // --- UI UTILS ---
+        function updateUIStatus(status) {
+            if (status === 'active') {
+                elements.statusDot.className = "w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_#00f2ff]";
+                elements.statusText.innerText = "Ecoute Active";
+                elements.statusText.className = "text-[9px] font-bold uppercase tracking-tighter text-cyan-400";
+                elements.statusBadge.style.borderColor = "rgba(0, 242, 255, 0.3)";
+
+                elements.toggleBtn.innerHTML = '<i class="fas fa-stop mr-2"></i> DÉSACTIVER SYSTÈME';
+                elements.toggleBtn.classList.add('active');
+            } else {
+                elements.statusDot.className = "w-1.5 h-1.5 rounded-full bg-gray-500";
+                elements.statusText.innerText = "Standby";
+                elements.statusText.className = "text-[9px] font-bold uppercase tracking-tighter opacity-50";
+                elements.statusBadge.style.borderColor = "";
+
+                elements.toggleBtn.innerHTML = '<i class="fas fa-play mr-2"></i> INITIALISER SYSTÈME';
+                elements.toggleBtn.classList.remove('active');
+            }
+        }
+
+        function renderHistory() {
+            elements.historyList.innerHTML = state.history.map(item => `
+                <div class="history-item">
+                    <span class="font-mono text-[9px] opacity-30 mt-1">${item.time}</span>
+                    <p class="text-[11px] opacity-70">${item.text}</p>
+                </div>
+            `).join('') || '<p class="text-center opacity-10 text-[10px] py-4">HISTORIQUE VIDE</p>';
+        }
+
+        function showToast(msg) {
+            elements.toast.innerText = msg;
+            elements.toast.classList.add('show');
+            setTimeout(() => elements.toast.classList.remove('show'), 3000);
+        }
+
+        function startTimer() {
+            state.startTime = Date.now();
+            state.timerId = setInterval(() => {
+                const diff = Date.now() - state.startTime;
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                elements.timer.innerText =
+                    `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(state.timerId);
+        }
+
+        // --- EVENTS ---
+        elements.toggleBtn.addEventListener('click', async () => {
+            if (!state.listening) {
+                await initAudio();
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+                state.listening = true;
+                if (recognition) recognition.start();
+                startTimer();
+                showToast("SYSTÈME INITIALISÉ");
+            } else {
+                state.listening = false;
+                if (recognition) recognition.stop();
+                stopTimer();
+                showToast("SYSTÈME EN PAUSE");
+
+                // Release mic
+                if (stream) {
+                    stream.getTracks().forEach(track => track.stop());
+                    stream = null;
+                    audioCtx = null;
+                }
+            }
+        });
+
+        elements.copyBtn.addEventListener('click', () => {
+            const text = state.history.map(h => h.text).join('\n');
+            navigator.clipboard.writeText(text).then(() => showToast("COPIÉ"));
+        });
+
+        elements.exportBtn.addEventListener('click', () => {
+            const text = state.history.map(h => `[${h.time}] ${h.text}`).join('\n');
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `orateur-session-${new Date().toISOString().split('T')[0]}.txt`;
+            a.click();
+            showToast("EXPORTÉ");
+        });
+
+        elements.clearHistory.addEventListener('click', () => {
+            state.history = [];
+            localStorage.setItem('orateur_history', '[]');
+            renderHistory();
+            showToast("LOG EFFACÉ");
+        });
+
+        // Initial render
+        renderHistory();
+
+    </script>
+</body>
+</html>
